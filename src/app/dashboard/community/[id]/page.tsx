@@ -1,14 +1,36 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useSession } from "next-auth/react";
 import { getStreak, getStreakMilestoneLabel, getCommunityDrafts, setCommunityDraft, blockUser, getBlockedUsers } from "@/lib/storage";
+import { ImagePlus, X } from "lucide-react";
 
 const USERNAME_KEY = "adaptive-learning-community-username";
 
 const EMOJI_OPTIONS = ["👍", "❤️", "😂", "😮", "📚", "💡", "🔥"];
+
+function MessageContent({ content, className = "" }: { content: string; className?: string }) {
+  const imgStart = content.indexOf("[img:");
+  if (imgStart !== -1) {
+    const srcStart = imgStart + 5;
+    const srcEnd = content.indexOf("]", srcStart);
+    if (srcEnd !== -1) {
+      const imgSrc = content.slice(srcStart, srcEnd);
+      const text = (content.slice(0, imgStart) + content.slice(srcEnd + 1)).trim();
+      if (imgSrc.startsWith("data:image/")) {
+        return (
+          <div className={className}>
+            {text ? <p className="text-deep-charcoal whitespace-pre-wrap">{text}</p> : null}
+            <img src={imgSrc} alt="Uploaded" className="mt-2 max-w-full rounded-button max-h-64 object-contain" />
+          </div>
+        );
+      }
+    }
+  }
+  return <p className={`text-deep-charcoal whitespace-pre-wrap ${className}`}>{content}</p>;
+}
 
 type Message = {
   id: string;
@@ -30,12 +52,18 @@ type Board = {
   messages: Message[];
 };
 
+const MAX_COMMUNITY_IMAGE_MB = 5;
+const MAX_COMMUNITY_IMAGE_BYTES = MAX_COMMUNITY_IMAGE_MB * 1024 * 1024;
+
 export default function BoardPage({ params }: { params: { id: string } }) {
   const { data: session } = useSession();
   const [board, setBoard] = useState<Board | null>(null);
   const [newMessage, setNewMessage] = useState("");
+  const [attachImage, setAttachImage] = useState<File | null>(null);
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const boardId = typeof params.id === "string" ? params.id : (params as { id: string }).id;
   const draftKey = `board-${boardId}`;
@@ -68,29 +96,54 @@ export default function BoardPage({ params }: { params: { id: string } }) {
     fetchBoard();
   }, [fetchBoard]);
 
+  // Load draft only once per board (never overwrite while user is typing)
+  const loadedDraftFor = useRef<string | null>(null);
   useEffect(() => {
-    setNewMessage(savedDraft);
-  }, [savedDraft]);
+    if (loadedDraftFor.current !== boardId) {
+      loadedDraftFor.current = boardId;
+      const draft = getCommunityDrafts()[`board-${boardId}`] ?? "";
+      setNewMessage(draft);
+    }
+  }, [boardId]);
 
+  // Save draft when message changes (for recovery)
   useEffect(() => {
     if (newMessage && boardId) setCommunityDraft(draftKey, newMessage);
+    else if (!newMessage && boardId) setCommunityDraft(draftKey, "");
   }, [newMessage, boardId, draftKey]);
 
   async function sendMessage() {
-    if (!board || !newMessage.trim() || !session) return;
+    if (!board || !session) return;
+    const text = newMessage.trim();
+    if (!text && !attachImage) return;
     const streak = getStreak();
     const label = getStreakMilestoneLabel(streak.streak);
+    setSending(true);
     try {
-      const res = await fetch(`/api/community/boards/${boardId}/messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          content: newMessage.trim(),
-          parentId: replyTo ?? undefined,
-          username: displayName,
-          milestoneLabel: label,
-        }),
-      });
+      let res: Response;
+      if (attachImage) {
+        const formData = new FormData();
+        formData.append("content", text || "(Image)");
+        formData.append("username", displayName);
+        formData.append("milestoneLabel", label);
+        if (replyTo) formData.append("parentId", replyTo);
+        formData.append("file", attachImage);
+        res = await fetch(`/api/community/boards/${boardId}/messages`, {
+          method: "POST",
+          body: formData,
+        });
+      } else {
+        res = await fetch(`/api/community/boards/${boardId}/messages`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            content: text,
+            parentId: replyTo ?? undefined,
+            username: displayName,
+            milestoneLabel: label,
+          }),
+        });
+      }
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed");
       const msg: Message = {
@@ -105,11 +158,29 @@ export default function BoardPage({ params }: { params: { id: string } }) {
       };
       setBoard((prev) => prev ? { ...prev, messages: [...(prev.messages ?? []), msg] } : null);
       setNewMessage("");
+      setAttachImage(null);
       setReplyTo(null);
       setCommunityDraft(draftKey, "");
     } catch (err) {
       console.error(err);
+    } finally {
+      setSending(false);
     }
+  }
+
+  function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!["image/png", "image/jpeg", "image/jpg"].includes(file.type)) {
+      alert("Please choose a PNG or JPG image.");
+      return;
+    }
+    if (file.size > MAX_COMMUNITY_IMAGE_BYTES) {
+      alert(`Image must be under ${MAX_COMMUNITY_IMAGE_MB}MB.`);
+      return;
+    }
+    setAttachImage(file);
   }
 
   async function addReaction(msgId: string, emoji: string) {
@@ -233,20 +304,53 @@ export default function BoardPage({ params }: { params: { id: string } }) {
           </button>
         )}
         <textarea
+          id="community-message-input"
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
-          placeholder={session ? "Write your message..." : "Sign in to reply"}
-          rows={4}
+          placeholder={session ? "Write your message here — full sentences and paragraphs supported. You can also attach PNG/JPG images." : "Sign in to reply"}
+          rows={6}
           disabled={!session}
-          className="mt-2 w-full rounded-input border border-warm-sand/80 px-4 py-3 disabled:opacity-60"
+          maxLength={15000}
+          className="mt-2 w-full rounded-input border border-warm-sand/80 px-4 py-3 min-h-[120px] disabled:opacity-60 resize-y text-base"
         />
-        <button
-          onClick={sendMessage}
-          disabled={!newMessage.trim() || !session}
-          className="mt-4 rounded-button bg-dusty-blue px-6 py-2 text-white disabled:opacity-50"
-        >
-          Send
-        </button>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/jpg"
+            onChange={handleImageSelect}
+            className="hidden"
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={!session}
+            className="flex items-center gap-2 rounded-button border border-warm-sand/80 px-4 py-2 text-sm font-medium text-deep-charcoal hover:bg-warm-sand/30 disabled:opacity-50 transition"
+          >
+            <ImagePlus size={18} />
+            Attach image (PNG/JPG, max 5MB)
+          </button>
+          {attachImage && (
+            <span className="flex items-center gap-2 text-sm text-deep-charcoal/80">
+              {attachImage.name}
+              <button
+                type="button"
+                onClick={() => setAttachImage(null)}
+                className="rounded p-1 hover:bg-warm-sand/50 text-terracotta"
+                aria-label="Remove"
+              >
+                <X size={14} />
+              </button>
+            </span>
+          )}
+          <button
+            onClick={sendMessage}
+            disabled={(!newMessage.trim() && !attachImage) || !session || sending}
+            className="ml-auto rounded-button bg-dusty-blue px-6 py-2 text-white disabled:opacity-50 hover:brightness-95 transition"
+          >
+            {sending ? "Sending…" : "Send"}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -319,7 +423,7 @@ function MessageCard({
           )}
         </div>
       </div>
-      <p className="mt-2 text-deep-charcoal whitespace-pre-wrap">{message.content}</p>
+      <MessageContent content={message.content} />
 
       <div className="mt-3 flex items-center gap-2 flex-wrap">
         {Object.entries(message.reactions ?? {}).map(([emoji, users]) =>
@@ -377,7 +481,7 @@ function MessageCard({
                 {r.milestoneLabel && <span className="text-terracotta text-xs">{r.milestoneLabel}</span>}
                 <span>{new Date(r.timestamp).toLocaleString()}</span>
               </div>
-              <p className="mt-1 text-deep-charcoal whitespace-pre-wrap text-sm">{r.content}</p>
+              <MessageContent content={r.content} className="mt-1 text-sm" />
             </div>
           ))}
         </div>
