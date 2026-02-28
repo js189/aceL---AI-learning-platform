@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
       messages: [
         { role: "system", content: systemContent },
         ...mappedMessages,
-      ],
+      ] as Parameters<typeof featherless.chat.completions.create>[0]["messages"],
       max_tokens: 350,
       temperature: 0.6,
     });

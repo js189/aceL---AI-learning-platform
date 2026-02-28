@@ -1,16 +1,16 @@
 import "./globals.css";
-import { Inter } from "next/font/google";
+import { Quicksand } from "next/font/google";
 import { Providers } from "@/components/Providers";
 
-const inter = Inter({
+const quicksand = Quicksand({
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  variable: "--font-inter",
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-quicksand",
 });
 
 export const metadata = {
-  title: "Adaptive Learning",
-  description: "AI-powered adaptive learning for students",
+  title: "aceL — Adaptive Learning",
+  description: "AI-powered adaptive learning for students. Stuck with study? Let aceL help you.",
 };
 
 export const viewport = {
@@ -26,7 +26,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en" className={quicksand.variable}>
       <body className="min-h-screen min-h-[100dvh] font-sans antialiased bg-cream text-deep-charcoal leading-body">
         <Providers>{children}</Providers>
       </body>
