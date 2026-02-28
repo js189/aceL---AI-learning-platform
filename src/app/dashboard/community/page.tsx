@@ -13,6 +13,7 @@ type Board = {
   title: string;
   subject: string;
   creatorUsername: string;
+  creatorUserId?: string | null;
   createdAt: string;
   lastActivity?: string;
   messageCount: number;
@@ -276,7 +277,16 @@ export default function CommunityPage() {
                 </div>
                 <div className="mt-2 flex items-center gap-3 text-sm text-deep-charcoal/70">
                   <span>{b.subject || "General"}</span>
-                  <span>by {b.creatorUsername}</span>
+                  <span>
+                    by{" "}
+                    {b.creatorUserId ? (
+                      <Link href={`/dashboard/profile/${b.creatorUserId}`} className="text-dusty-blue hover:underline">
+                        {b.creatorUsername}
+                      </Link>
+                    ) : (
+                      b.creatorUsername
+                    )}
+                  </span>
                   <span className="flex items-center gap-1">
                     <MessageSquare size={14} />
                     {b.messageCount ?? 0}
