@@ -1,7 +1,10 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send } from "lucide-react";
+import { Send, ImagePlus, X } from "lucide-react";
+
+const MAX_IMAGE_SIZE_MB = 10;
+const MAX_IMAGE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
 
 export function TutorChat({
   conceptTitle,
@@ -12,9 +15,11 @@ export function TutorChat({
   conceptContext?: string;
   onClose: () => void;
 }) {
-  const [messages, setMessages] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
+  const [messages, setMessages] = useState<{ role: "user" | "assistant"; content: string; imagePreview?: string }[]>([]);
   const [input, setInput] = useState("");
+  const [attachImage, setAttachImage] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -75,21 +80,35 @@ export function TutorChat({
   }, [isDragging, isResizing]);
 
   async function send() {
-    if (!input.trim() || loading) return;
-    const userMessage = input.trim();
+    const text = input.trim();
+    if ((!text && !attachImage) || loading) return;
+    const userMessage = text || "(Sent an image)";
+    const imageToSend = attachImage;
     setInput("");
-    setMessages((m) => [...m, { role: "user", content: userMessage }]);
+    setAttachImage(null);
+    const imagePreview = attachImage ? URL.createObjectURL(attachImage) : undefined;
+    setMessages((m) => [...m, { role: "user", content: userMessage, imagePreview }]);
     setLoading(true);
     try {
-      const res = await fetch("/api/tutor", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          conceptTitle,
-          conceptContext,
-          messages: [...messages, { role: "user", content: userMessage }],
-        }),
-      });
+      let res: Response;
+      if (imageToSend) {
+        const formData = new FormData();
+        formData.append("conceptTitle", conceptTitle);
+        if (conceptContext) formData.append("conceptContext", conceptContext);
+        formData.append("messages", JSON.stringify([...messages, { role: "user", content: userMessage }]));
+        formData.append("file", imageToSend);
+        res = await fetch("/api/tutor", { method: "POST", body: formData });
+      } else {
+        res = await fetch("/api/tutor", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            conceptTitle,
+            conceptContext,
+            messages: [...messages, { role: "user", content: userMessage }],
+          }),
+        });
+      }
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setMessages((m) => [
@@ -104,6 +123,22 @@ export function TutorChat({
     } finally {
       setLoading(false);
     }
+  }
+
+  function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    const validTypes = ["image/png", "image/jpeg", "image/jpg"];
+    if (!validTypes.includes(file.type)) {
+      alert("Please choose a PNG or JPG image.");
+      return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      alert(`Image must be under ${MAX_IMAGE_SIZE_MB}MB.`);
+      return;
+    }
+    setAttachImage(file);
   }
 
   return (
@@ -159,6 +194,9 @@ export function TutorChat({
                   : "rounded-card rounded-bl-sm bg-warm-sand px-4 py-3 text-sm text-deep-charcoal"
               }
             >
+              {m.imagePreview && (
+                <img src={m.imagePreview} alt="Uploaded" className="mb-2 max-w-full rounded-button max-h-40 object-contain" />
+              )}
               {m.content}
             </div>
           </div>
@@ -177,22 +215,53 @@ export function TutorChat({
           e.preventDefault();
           send();
         }}
-        className="flex gap-2 border-t border-warm-sand/80 bg-cream/80 p-4 shrink-0"
+        className="flex flex-col gap-2 border-t border-warm-sand/80 bg-cream/80 p-4 shrink-0"
       >
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Type your answer or question..."
-          className="flex-1 rounded-input border-0 bg-transparent px-3 py-2 text-deep-charcoal placeholder:text-deep-charcoal/40 focus:outline-none"
-        />
-        <button
-          type="submit"
-          disabled={loading}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-dusty-blue text-white hover:brightness-95 disabled:opacity-50 transition"
-        >
-          <Send size={18} />
-        </button>
+        {attachImage && (
+          <div className="flex items-center gap-2 text-sm text-deep-charcoal/80">
+            <span className="truncate flex-1">{attachImage.name}</span>
+            <button
+              type="button"
+              onClick={() => setAttachImage(null)}
+              className="rounded-full p-1 hover:bg-warm-sand/50 text-terracotta"
+              aria-label="Remove image"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        )}
+        <div className="flex gap-2 items-end flex-wrap">
+          <textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Type your message... You can also attach PNG/JPG images (up to 10MB)"
+            rows={2}
+            className="flex-1 min-w-0 rounded-input border border-warm-sand/50 bg-cream/50 px-3 py-2 text-deep-charcoal placeholder:text-deep-charcoal/40 focus:outline-none focus:border-dusty-blue/50 resize-none min-h-[44px] max-h-[120px]"
+          />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/jpg"
+            onChange={handleImageSelect}
+            className="hidden"
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="flex h-10 shrink-0 items-center gap-1.5 rounded-button border-2 border-dashed border-dusty-blue/50 px-3 text-dusty-blue hover:bg-dusty-blue/10 transition font-medium text-sm"
+            aria-label="Attach image"
+          >
+            <ImagePlus size={18} />
+            <span className="hidden sm:inline">Image</span>
+          </button>
+          <button
+            type="submit"
+            disabled={loading || (!input.trim() && !attachImage)}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-dusty-blue text-white hover:brightness-95 disabled:opacity-50 transition"
+          >
+            <Send size={18} />
+          </button>
+        </div>
       </form>
       {/* Resize handle - hidden on mobile */}
       {!isMobile && (
