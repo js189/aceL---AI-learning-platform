@@ -1,4 +1,4 @@
-# Adaptive Learning — AI-Powered Study App
+# aceL - AI Learning Platform
 
 Full-stack adaptive learning web app using the **Featherless AI API**. Students master any topic through personalised AI tutoring, adaptive learning paths, and collaborative learning.
 
