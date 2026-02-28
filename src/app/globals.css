@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --cream: #fdf8f2;
+  --warm-sand: #f0e6d9;
+  --deep-charcoal: #2c3e4f;
+  --sage: #8ba88b;
+  --terracotta: #d18b7c;
+  --dusty-blue: #7c9eb2;
+  --space-xs: 0.5rem;
+  --space-sm: 1rem;
+  --space-md: 1.5rem;
+  --space-lg: 2rem;
+  --space-xl: 3rem;
+  --shadow-subtle: 0 4px 12px rgba(44, 62, 79, 0.05);
+  --shadow-hover: 0 8px 24px rgba(44, 62, 79, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Safe area for fixed elements (notch devices) */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .pb-safe {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+  .pt-safe {
+    padding-top: max(0.5rem, env(safe-area-inset-top));
+  }
+}
+
+body {
+  background-color: var(--cream);
+  color: var(--deep-charcoal);
+}
+
+.hover-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hover);
+}
