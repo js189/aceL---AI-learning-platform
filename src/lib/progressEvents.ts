@@ -8,9 +8,9 @@ export function dispatchProgressUpdate() {
   }
 }
 
-export function useProgressUpdate(callback: () => void): void | (() => void) {
+export function useProgressUpdate(callback: () => void): void {
   if (typeof window === "undefined") return;
   const handler = () => callback();
   window.addEventListener(EVENT_NAME, handler);
-  return () => window.removeEventListener(EVENT_NAME, handler);
+  return () => window.removeEventListener(EVENT_NAME, handler) as unknown as void;
 }

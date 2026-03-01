@@ -218,92 +218,87 @@ export default function DashboardPage() {
   const repairDaysLeft = getRepairWindowDaysLeft();
 
   return (
-    <div className="animate-fade-in space-y-6">
+    <div className="animate-fade-in">
       {inRepairWindow && repairDaysLeft > 0 && (
-        <div className="rounded-2xl border border-warm-sand/60 bg-cream p-6 shadow-subtle">
-          <div className="rounded-xl border-2 border-terracotta/40 bg-terracotta/10 p-5">
-            <h3 className="font-semibold text-terracotta">Streak Repair Available</h3>
-            <p className="mt-2 text-sm text-deep-charcoal/90">
-              You have <strong>{repairDaysLeft} day{repairDaysLeft !== 1 ? "s" : ""}</strong> left to restore your streak!
-              Pass a comprehensive quiz across all your topics to get it back.
-            </p>
-            <p className="mt-2 text-sm font-medium text-terracotta">
-              ⏱ Countdown: {repairDaysLeft === 1 ? "Last day!" : `${repairDaysLeft} days remaining`}
-            </p>
-            <Link
-              href="/dashboard/streak-repair"
-              className="mt-4 inline-block rounded-button bg-terracotta px-6 py-2.5 text-sm font-medium text-white hover:brightness-95"
+        <div className="mb-6 rounded-card border-2 border-terracotta/40 bg-terracotta/10 p-6">
+          <h3 className="font-semibold text-terracotta">Streak Repair Available</h3>
+          <p className="mt-2 text-sm text-deep-charcoal/90">
+            You have <strong>{repairDaysLeft} day{repairDaysLeft !== 1 ? "s" : ""}</strong> left to restore your streak!
+            Pass a comprehensive quiz across all your topics to get it back.
+          </p>
+          <p className="mt-2 text-sm font-medium text-terracotta">
+            ⏱ Countdown: {repairDaysLeft === 1 ? "Last day!" : `${repairDaysLeft} days remaining`}
+          </p>
+          <Link
+            href="/dashboard/streak-repair"
+            className="mt-4 inline-block rounded-button bg-terracotta px-6 py-2.5 text-sm font-medium text-white hover:brightness-95"
+          >
+            Take Streak Repair Quiz
+          </Link>
+        </div>
+      )}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
+        <h1 className="text-2xl font-bold text-deep-charcoal">Topic Dashboard</h1>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href="/dashboard/upload"
+            className="rounded-button bg-dusty-blue px-5 py-2.5 text-sm font-medium text-white hover:brightness-95 transition"
+          >
+            + New topic
+          </Link>
+          <Link
+            href="/dashboard/progress"
+            className="rounded-button border border-warm-sand px-5 py-2.5 text-sm font-medium text-deep-charcoal hover:bg-warm-sand/30 transition"
+          >
+            Progress Overview
+          </Link>
+        </div>
+      </div>
+
+      {session?.user && (
+        <div className="mb-6 flex flex-wrap gap-2">
+          {filters.map((f) => (
+            <button
+              key={f.value}
+              type="button"
+              onClick={() => setFilter(f.value)}
+              className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${
+                filter === f.value
+                  ? "bg-dusty-blue text-white"
+                  : "bg-warm-sand/50 text-deep-charcoal/80 hover:bg-warm-sand"
+              }`}
             >
-              Take Streak Repair Quiz
-            </Link>
-          </div>
+              {f.label}
+            </button>
+          ))}
         </div>
       )}
 
-      {/* Your topics – card block (Be.run style) */}
-      <div className="rounded-2xl border border-warm-sand/60 bg-cream p-6 sm:p-8 shadow-subtle">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
-          <h2 className="text-lg font-bold text-deep-charcoal">Your topics</h2>
-          <div className="flex flex-wrap gap-2">
-            <Link
-              href="/dashboard/upload"
-              className="rounded-button bg-dusty-blue px-5 py-2.5 text-sm font-medium text-white hover:brightness-95 transition"
-            >
-              + New topic
-            </Link>
-            <Link
-              href="/dashboard/progress"
-              className="rounded-button border border-warm-sand px-5 py-2.5 text-sm font-medium text-deep-charcoal hover:bg-warm-sand/30 transition"
-            >
-              Progress Overview
-            </Link>
+      {loading ? (
+        <p className="text-deep-charcoal/60">Loading...</p>
+      ) : topics.length === 0 ? (
+        <div className="rounded-card border-2 border-dashed border-dusty-blue/30 bg-cream p-12 text-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-dusty-blue/10">
+            <FileText size={32} className="text-dusty-blue/30" />
           </div>
+          <h2 className="text-xl font-medium text-deep-charcoal">No topics yet</h2>
+          <p className="mt-2 text-deep-charcoal/60">
+            Upload your first materials to get started
+          </p>
+          <Link
+            href="/dashboard/upload"
+            className="mt-6 inline-block rounded-button bg-dusty-blue px-8 py-2.5 text-sm font-medium text-white hover:brightness-95 transition"
+          >
+            Upload content
+          </Link>
         </div>
-
-        {session?.user && (
-          <div className="mb-6 flex flex-wrap gap-2">
-            {filters.map((f) => (
-              <button
-                key={f.value}
-                type="button"
-                onClick={() => setFilter(f.value)}
-                className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${
-                  filter === f.value
-                    ? "bg-dusty-blue text-white"
-                    : "bg-warm-sand/50 text-deep-charcoal/80 hover:bg-warm-sand"
-                }`}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {loading ? (
-          <p className="text-deep-charcoal/60">Loading...</p>
-        ) : topics.length === 0 ? (
-          <div className="rounded-xl border-2 border-dashed border-dusty-blue/30 bg-warm-sand/20 p-12 text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-dusty-blue/10">
-              <FileText size={32} className="text-dusty-blue/30" />
-            </div>
-            <h2 className="text-xl font-medium text-deep-charcoal">No topics yet</h2>
-            <p className="mt-2 text-deep-charcoal/60">
-              Upload your first materials to get started
-            </p>
-            <Link
-              href="/dashboard/upload"
-              className="mt-6 inline-block rounded-button bg-dusty-blue px-8 py-2.5 text-sm font-medium text-white hover:brightness-95 transition"
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {topics.map((t) => (
+            <div
+              key={t.topicId}
+              className="relative rounded-card border border-warm-sand/80 bg-cream p-4 sm:p-6 shadow-subtle hover-lift transition"
             >
-              Upload content
-            </Link>
-          </div>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {topics.map((t) => (
-              <div
-                key={t.topicId}
-                className="relative rounded-2xl border border-warm-sand/80 bg-cream p-4 sm:p-6 shadow-subtle hover:shadow-md transition"
-              >
               <div className="absolute top-4 right-4 flex gap-1">
                 {session?.user && (
                   <>
@@ -379,9 +374,8 @@ export default function DashboardPage() {
               </Link>
             </div>
           ))}
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

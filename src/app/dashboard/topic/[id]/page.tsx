@@ -371,8 +371,9 @@ export default function TopicPage({
               />
             </>
           ) : (
-            (() => {
-              const weakFromUnfamiliar = data.concepts
+            <LearningPath
+              concepts={data.concepts}
+              weakConcepts={data.concepts
                 .filter((c) =>
                   unfamiliarConcepts.some(
                     (u) =>
@@ -380,36 +381,26 @@ export default function TopicPage({
                       c.title.toLowerCase().includes(u.toLowerCase())
                   )
                 )
-                .map((c) => c.id);
-              const weakConceptsForPath =
-                weakFromUnfamiliar.length > 0
-                  ? weakFromUnfamiliar
-                  : data.concepts.map((c) => c.id);
-              return (
-                <LearningPath
-                  concepts={data.concepts}
-                  weakConcepts={weakConceptsForPath}
-                  topicTitle={data.title}
-                  topicSummary={data.summary}
-                  topicId={id}
-                  assessmentScore={assessmentScore}
-                  assessmentFeedback={assessmentFeedback}
-                  learningStyle={learningStyle}
-                  onComplete={() => {}}
-                  onReturnToMainAssessment={() => setRetakeMainAssessment(true)}
-                  completedConceptIds={learningPathCompleted}
-                  onConceptComplete={async (conceptId) => {
-                    const next = [...learningPathCompleted, conceptId];
-                    setLearningPathCompleted(next);
-                    await persistProgress({
-                      conceptStatusUpdates: [{ conceptId, status: "mastered" }],
-                      learningPathCompleted: next,
-                    });
-                    dispatchProgressUpdate();
-                  }}
-                />
-              );
-            })()
+                .map((c) => c.id)}
+              topicTitle={data.title}
+              topicSummary={data.summary}
+              topicId={id}
+              assessmentScore={assessmentScore}
+              assessmentFeedback={assessmentFeedback}
+              learningStyle={learningStyle}
+              onComplete={() => {}}
+              onReturnToMainAssessment={() => setRetakeMainAssessment(true)}
+              completedConceptIds={learningPathCompleted}
+              onConceptComplete={async (conceptId) => {
+                const next = [...learningPathCompleted, conceptId];
+                setLearningPathCompleted(next);
+                await persistProgress({
+                  conceptStatusUpdates: [{ conceptId, status: "mastered" }],
+                  learningPathCompleted: next,
+                });
+                dispatchProgressUpdate();
+              }}
+            />
           )}
         </>
       )}

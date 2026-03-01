@@ -1,23 +1,7 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import type { Concept, LearningStyleProfile } from "@/types";
-
-function mergeDedup<T>(...arrs: (T[] | undefined)[]): T[] {
-  const seen = new Set<string>();
-  const out: T[] = [];
-  for (const arr of arrs) {
-    if (!Array.isArray(arr)) continue;
-    for (const x of arr) {
-      const key = String(x).trim();
-      if (key && !seen.has(key)) {
-        seen.add(key);
-        out.push(x);
-      }
-    }
-  }
-  return out;
-}
 
 type Question = {
   id: string;
@@ -57,9 +41,6 @@ export function QuizFlow({
   const [quizScores, setQuizScores] = useState<number[]>([]);
   const [quizStarted, setQuizStarted] = useState(false);
   const [apiError, setApiError] = useState("");
-  const accumulatedCorrect = useRef<string[]>([]);
-  const accumulatedMisconceptions = useRef<string[]>([]);
-  const accumulatedUnfamiliar = useRef<string[]>([]);
 
   async function loadQuiz() {
     setApiError("");
@@ -80,10 +61,6 @@ export function QuizFlow({
       setAnswers({});
       setQuizStarted(false);
       setQuizScores([]);
-      setResult(null);
-      accumulatedCorrect.current = [];
-      accumulatedMisconceptions.current = [];
-      accumulatedUnfamiliar.current = [];
     } catch (e) {
       setApiError(e instanceof Error ? e.message : "Failed to generate quiz");
     } finally {
@@ -135,22 +112,13 @@ export function QuizFlow({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setApiError("");
-      if (Array.isArray(data.correct)) accumulatedCorrect.current.push(...data.correct);
-      if (Array.isArray(data.misconceptions)) accumulatedMisconceptions.current.push(...data.misconceptions);
-      if (Array.isArray(data.unfamiliar)) accumulatedUnfamiliar.current.push(...data.unfamiliar);
-
       const newScores = [...quizScores, data.score];
       setQuizScores(newScores);
       if (currentQ + 1 >= questions.length) {
         const avgScore = Math.round(newScores.reduce((a, b) => a + b, 0) / newScores.length);
-        setResult({
-          score: avgScore,
-          reasoning: data.reasoning ?? "Assessment complete.",
-          correct: mergeDedup<string>(accumulatedCorrect.current),
-          misconceptions: mergeDedup<string>(accumulatedMisconceptions.current),
-          unfamiliar: mergeDedup<string>(accumulatedUnfamiliar.current),
-        });
+        setResult({ ...data, score: avgScore });
       } else {
+        setResult(null);
         setCurrentQ((c) => c + 1);
       }
     } catch (e) {
@@ -173,9 +141,6 @@ export function QuizFlow({
   }
 
   if (result) {
-    const feedbackMessage =
-      result.reasoning?.trim() ||
-      "Use the learning path below to review and strengthen your understanding.";
     return (
       <div className="mx-auto max-w-xl mt-6 rounded-card border border-warm-sand/80 bg-cream p-6 shadow-subtle">
         <h3 className="font-semibold text-deep-charcoal">Understanding score</h3>
@@ -205,7 +170,7 @@ export function QuizFlow({
             <span className="text-2xl font-bold text-deep-charcoal">{result.score}</span>
             <span className="text-deep-charcoal/60 text-base">/100</span>
           </div>
-          <p className="text-deep-charcoal/80 leading-body flex-1 text-sm">{feedbackMessage}</p>
+          <p className="text-deep-charcoal/80 leading-body flex-1 text-sm">{result.reasoning}</p>
         </div>
         <div className="mt-6 space-y-4 border-t border-warm-sand/80 pt-6">
           {result.correct?.length > 0 && (

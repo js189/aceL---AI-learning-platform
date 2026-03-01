@@ -477,13 +477,7 @@ function MessageCard({
                 <div className="h-6 w-6 rounded-full bg-dusty-blue/20 flex items-center justify-center text-dusty-blue text-xs font-semibold shrink-0">
                   {(r.username || "?").charAt(0).toUpperCase()}
                 </div>
-                {r.userId ? (
-                  <Link href={`/dashboard/profile/${r.userId}`} className="font-medium text-deep-charcoal text-dusty-blue hover:underline">
-                    {r.username}
-                  </Link>
-                ) : (
-                  <span className="font-medium text-deep-charcoal">{r.username}</span>
-                )}
+                <span className="font-medium text-deep-charcoal">{r.username}</span>
                 {r.milestoneLabel && <span className="text-terracotta text-xs">{r.milestoneLabel}</span>}
                 <span>{new Date(r.timestamp).toLocaleString()}</span>
               </div>
