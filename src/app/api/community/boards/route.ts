@@ -37,12 +37,11 @@ export async function GET() {
       }
     }
 
-    const enriched = (boards ?? []).map((b: { id: string; user_id?: string; title?: string; subject?: string; creator_username: string; created_at: string }) => ({
+    const enriched = (boards ?? []).map((b: { id: string; creator_username: string; created_at: string }) => ({
       id: b.id,
-      title: b.title ?? "",
+      title: b.title,
       subject: b.subject ?? "",
       creatorUsername: b.creator_username,
-      creatorUserId: (b as { user_id?: string }).user_id ?? null,
       createdAt: b.created_at,
       lastActivity: lastActivity[b.id] ?? b.created_at,
       messages: [],

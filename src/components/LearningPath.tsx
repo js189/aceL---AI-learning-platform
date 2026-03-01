@@ -60,9 +60,23 @@ export function LearningPath({
     return null;
   }
 
+  if (items.length === 0) {
+    return (
+      <div className="mt-6 rounded-card border border-sage/20 bg-sage/5 p-8 text-center">
+        <span className="text-4xl">🎉</span>
+        <h2 className="mt-4 text-lg font-semibold text-deep-charcoal">
+          No weak spots — you&apos;ve got this!
+        </h2>
+        <p className="mt-2 text-sm text-deep-charcoal/80">
+          Keep practicing to reinforce your understanding.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="mt-6 space-y-6">
-      {/* Understanding score and feedback - always shown when we have a score (e.g. 95) */}
+      {/* Feedback and understanding score - same page */}
       {(assessmentScore != null || assessmentFeedback) && (
         <div className="rounded-card border border-warm-sand/80 bg-cream p-4 sm:p-6 shadow-subtle">
           <h3 className="font-semibold text-deep-charcoal">Understanding score</h3>
@@ -72,10 +86,9 @@ export function LearningPath({
                 <span className="text-xl font-bold text-deep-charcoal">{assessmentScore}</span>
                 <span className="text-deep-charcoal/60">/100</span>
               </div>
-              <p className="text-deep-charcoal/80 text-sm flex-1">
-                {assessmentFeedback?.reasoning?.trim() ||
-                  "Use the learning path below to review and strengthen your understanding."}
-              </p>
+              {assessmentFeedback?.reasoning && (
+                <p className="text-deep-charcoal/80 text-sm flex-1">{assessmentFeedback.reasoning}</p>
+              )}
             </div>
           )}
           <div className="mt-4 space-y-3 border-t border-warm-sand/80 pt-4">
@@ -103,25 +116,14 @@ export function LearningPath({
         </div>
       )}
 
-      {/* Learning path - or "No weak spots" when score is high (e.g. 95) */}
+      {/* Learning path - unfamiliar concepts only */}
       <div className="rounded-card border border-warm-sand/80 bg-cream p-4 sm:p-6 shadow-subtle">
-        {items.length === 0 ? (
-          <div className="py-4 text-center">
-            <span className="text-4xl">🎉</span>
-            <h2 className="mt-4 text-lg font-semibold text-deep-charcoal">
-              No weak spots — you&apos;ve got this!
-            </h2>
-            <p className="mt-2 text-sm text-deep-charcoal/80">
-              Keep practicing to reinforce your understanding.
-            </p>
-          </div>
-        ) : (
-          <>
         <h2 className="font-medium text-deep-charcoal">Focus on these concepts:</h2>
         <p className="mt-1 text-sm text-deep-charcoal/60">
           {items.length} concept{items.length !== 1 ? "s" : ""} to review
         </p>
-        <div className="mt-4">
+        {items.length > 0 && (
+          <div className="mt-4">
             <div className="flex items-center justify-between text-sm text-deep-charcoal/70 mb-2">
               <span>Progress</span>
               <span>{completedConceptIds.filter((id) => items.some((c) => c.id === id)).length}/{items.length} complete</span>
@@ -135,6 +137,7 @@ export function LearningPath({
               />
             </div>
           </div>
+        )}
         <ul className="mt-6 divide-y divide-warm-sand/50">
           {items.map((c, i) => {
             const isComplete = completedConceptIds.includes(c.id);
@@ -224,8 +227,6 @@ export function LearningPath({
                 </button>
               </div>
             )}
-          </>
-        )}
           </>
         )}
       </div>
