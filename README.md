@@ -70,6 +70,4 @@ Full-stack adaptive learning web app using the **Featherless AI API**. Students 
 - Encouraging, non-judgmental AI tone.
 - At-risk: “This concept is being a bit stubborn — let’s try a different approach.”
 
-## License
 
-MIT
