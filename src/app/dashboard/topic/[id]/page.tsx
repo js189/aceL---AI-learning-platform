@@ -20,6 +20,7 @@ type TopicData = {
   concepts: Concept[];
   checklist: ChecklistItem[];
   rawSources?: string[];
+  sourceContent?: string;
   lastSessionSummary?: string;
 };
 
@@ -61,6 +62,7 @@ export default function TopicPage({
               concepts: json.concepts ?? [],
               checklist: json.checklist ?? [],
               rawSources: json.rawSources ?? [],
+              sourceContent: json.sourceContent ?? "",
               lastSessionSummary: json.lastSessionSummary,
             });
             if (json.progress) {
@@ -311,6 +313,7 @@ export default function TopicPage({
                 weakConcepts={[]}
                 topicTitle={data.title}
                 topicSummary={data.summary}
+                sourceContent={data.sourceContent}
                 topicId={id}
                 assessmentScore={assessmentScore}
                 assessmentFeedback={assessmentFeedback}
@@ -351,6 +354,7 @@ export default function TopicPage({
                       .map((c) => c.id)}
                     topicTitle={data.title}
                     topicSummary={data.summary}
+                    sourceContent={data.sourceContent}
                     topicId={id}
                     assessmentScore={assessmentScore}
                     assessmentFeedback={assessmentFeedback}
@@ -398,6 +402,7 @@ export default function TopicPage({
                     weakConcepts={weakConceptsForPath}
                     topicTitle={data.title}
                     topicSummary={data.summary}
+                    sourceContent={data.sourceContent}
                     topicId={id}
                     assessmentScore={assessmentScore}
                     assessmentFeedback={assessmentFeedback}

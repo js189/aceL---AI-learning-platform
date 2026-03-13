@@ -46,6 +46,7 @@ const analyzeCache = new Map<string, {
   concepts: Array<{ id: string; title: string; description?: string; source?: string; order: number }>;
   checklist: Array<{ id: string; conceptId: string | undefined; title: string; source?: string; completed: boolean }>;
   rawSources: string[];
+  sourceContent?: string;
   documentHash: string;
 }>();
 
@@ -162,6 +163,8 @@ function mergeChunkResults(parts: ParsedAnalyze[], sourceLabel: string) {
   return { title, summary, concepts, checklist };
 }
 
+const MAX_SOURCE_CONTENT_CHARS = 30000; // ~7.5k tokens, enough for post-source quiz grounding
+
 async function buildAnalyzeResult(
   userId: string,
   text: string,
@@ -174,6 +177,11 @@ async function buildAnalyzeResult(
     onProgress?.(100, "Cache hit - returning previous analysis");
     return cached;
   }
+
+  const sourceContent =
+    text.length <= MAX_SOURCE_CONTENT_CHARS
+      ? text
+      : text.slice(0, MAX_SOURCE_CONTENT_CHARS) + "\n\n[Content truncated for storage...]";
 
   const chunks = splitTextIntoChunks(text);
   onProgress?.(8, chunks.length > 1 ? `Large document detected, split into ${chunks.length} chunks` : "Analyzing document");
@@ -199,6 +207,7 @@ async function buildAnalyzeResult(
     concepts: merged.concepts,
     checklist: merged.checklist.map((item) => ({ ...item, completed: false })),
     rawSources: [sourceLabel],
+    sourceContent,
     documentHash,
   };
 
@@ -211,6 +220,7 @@ async function buildAnalyzeResult(
         title: merged.title,
         summary: merged.summary,
         raw_sources: [sourceLabel],
+        source_content: sourceContent,
       })
       .select("id")
       .single();

@@ -22,36 +22,35 @@ Output:
 
 Use ONLY the provided source content. Be fast.`;
 
-const POST_QUIZ_PROMPT = `You are a strict JSON-only quiz generator for a post-source challenge quiz.
-Output ONLY a single valid JSON object — absolutely zero text outside the JSON. No markdown, no \`\`\`json, no comments, no introductions, no apologies — nothing except the raw JSON object.
+const POST_QUIZ_PROMPT = `You are a strict JSON-only post-source quiz generator. Output ONLY valid JSON — no other text ever. No markdown, no \`\`\`json, no comments, no intros, no apologies. Raw JSON only.
 
-DIFFICULTY (CRITICAL) — HARDER THAN MAIN QUIZ:
-- Post-source is SIGNIFICANTLY MORE DIFFICULT than the main quiz. Main quiz = medium, tests basic understanding. Post-source = HARD.
-- Every question must require: application, synthesis, critical thinking, or analysis — not recall or definition.
-- Ask about edge cases, trade-offs, "what if" scenarios, prioritization, or comparison. No simple "what is X" questions.
-- Distractors must be subtle and plausible; the correct answer requires nuanced reasoning to identify.
+=== 100% TOPIC FIDELITY (NON-NEGOTIABLE) ===
+- Questions MUST be 100% derived from and tightly connected to the EXACT source text provided below.
+- NO general knowledge. NO drifting to other topics. NO assumptions outside the material.
+- Every question MUST test deep understanding/application/edge cases OF THE SPECIFIC CONTENT in the source.
+- If the source is "Data Structures & Algorithms Basics", questions must be about arrays, linked lists, stacks, queues, trees, graphs, sorting, searching, time complexity etc. AS ACTUALLY COVERED in the text — NEVER unrelated computer science, generic algorithms, or topics not in the source.
+- Stay extremely faithful to the source material. Do NOT add external knowledge or unrelated concepts. If something is NOT clearly in the source text, do NOT ask about it.
+- Repeat to yourself: "Only what is in the source. Nothing else."
 
-EACH QUESTION COMPLETELY DIFFERENT:
-- The 5 questions in this quiz must be COMPLETELY DIFFERENT from each other: different concepts, different scenarios, different question types.
-- No two questions should test the same concept in a similar way. No repeated phrasing or parallel structures.
-- Cover different angles: e.g. one on trade-offs, one on edge cases, one on application, one on limitations, one on comparison.
-- Each question and its choices must feel like a distinct, fresh challenge — never similar to another in the same quiz.
+=== DIFFICULTY ===
+- Exactly 5 HARD application/analysis/evaluation MC questions (not recall or definition).
+- Edge cases, trade-offs, "what if" scenarios, prioritization, comparison. No simple "what is X?"
 
-MANDATORY STRUCTURE:
-- Exactly 5 multiple-choice questions. No more, no less.
-- Each question: {"question":"...?","options":{"A":"...","B":"...","C":"...","D":"..."},"correct":"X","explanation":"max 20 words"}
-- "correct" is exactly one uppercase letter: A, B, C, or D.
-- Randomize the correct answer position independently for each question.
-
-QUESTION QUALITY:
-- Each question ≤ 24 words. Each option ≤ 15 words.
-- Distractors plausible but clearly distinct. Never two options with similar meaning.
-- All 4 options must be conceptually different.
-
-OUTPUT FORMAT:
-{"quiz_type":"post-source","title":"Post-Source Challenge Quiz","questions":[{"question":"...?","options":{"A":"...","B":"...","C":"...","D":"..."},"correct":"X","explanation":"..."}]}
-
-Use ONLY the provided source content. Each of the 5 questions must be completely different and harder than a main quiz.`;
+=== OUTPUT FORMAT (exact structure) ===
+{
+  "quiz_type": "post-source",
+  "title": "Post-Source Application Quiz",
+  "questions": [
+    {
+      "question": "...?",
+      "options": { "A": "...", "B": "...", "C": "...", "D": "..." },
+      "correct": "B",
+      "explanation": "short reason"
+    }
+  ]
+}
+- Exactly 5 questions. "correct" = one uppercase letter A/B/C/D. Randomize correct position per question.
+- Each question ≤ 24 words. Each option ≤ 15 words.`;
 
 type Q = { id: string; type: "mcq"; question: string; options: string[]; expectedAnswer: string; explanation?: string };
 
@@ -296,6 +295,7 @@ const ANTI_PATTERNS = [
   "Do NOT repeat similar wording across questions. Each question must feel like a different scenario.",
   "Do NOT put the correct answer in the same position (e.g. all B) — spread A/B/C/D randomly.",
   "Do NOT use generic distractors. Each wrong answer must be plausible but uniquely wrong for a specific reason.",
+  "Do NOT ask about topics or concepts that are NOT in the provided material. Stick strictly to the topic and content given.",
 ];
 
 async function generateQuiz(
@@ -366,12 +366,15 @@ export async function POST(req: NextRequest) {
     await getServerSession(authOptions);
 
     const body = await req.json();
-    const { concepts, style, sourceMaterial, freshRecall, documentHash } = body as {
+    const { concepts, style, sourceMaterial, freshRecall, documentHash, topicSummary, topicTitle, sourceContent } = body as {
       concepts: Array<{ title: string; description?: string }>;
       style?: string;
       sourceMaterial?: boolean;
       freshRecall?: boolean;
       documentHash?: string;
+      topicSummary?: string;
+      topicTitle?: string;
+      sourceContent?: string;
     };
 
     if (!concepts?.length) {
@@ -383,11 +386,39 @@ export async function POST(req: NextRequest) {
       .map((c) => `${c.title}${c.description ? `: ${c.description}` : ""}`)
       .join("\n");
 
-    // For post-source: shuffle concept order so each request has different input (breaks caching/similarity)
+    // For post-source: use actual uploaded content when available; otherwise concepts + summary
     const shuffledConcepts = [...concepts].sort(() => Math.random() - 0.5);
-    const postSourceText = shuffledConcepts
+    const conceptBlock = shuffledConcepts
       .map((c) => `${c.title}${c.description ? `: ${c.description}` : ""}`)
       .join("\n");
+    const hasSourceContent = typeof sourceContent === "string" && sourceContent.trim().length > 50;
+    const topicHeader = topicTitle?.trim()
+      ? `TOPIC (100% fidelity required): ${topicTitle.trim()}`
+      : "See material below. Questions must be ONLY about this topic.";
+    const guardrail = "Stay extremely faithful to the source material. Do NOT add external knowledge or unrelated concepts. If something is not clearly in the source text, do NOT ask about it.";
+    const postSourceMaterial = hasSourceContent
+      ? [
+          topicHeader,
+          guardrail,
+          "",
+          "=== SOURCE TEXT (derive questions ONLY from this) ===",
+          "",
+          sourceContent!.trim(),
+        ]
+          .filter(Boolean)
+          .join("\n")
+      : [
+          topicHeader,
+          guardrail,
+          "",
+          "=== SOURCE MATERIAL (extracted overview + concepts) ===",
+          "",
+          topicSummary ? `Overview: ${topicSummary}` : null,
+          conceptBlock ? `Concepts:\n${conceptBlock}` : conceptBlock,
+        ]
+          .filter(Boolean)
+          .join("\n");
+    const postSourceText = postSourceMaterial;
 
     const stableHash = documentHash || hashQuizInput({ concepts, style });
     // Post-source quiz is NEVER cached — must always be fresh to prevent memorization.

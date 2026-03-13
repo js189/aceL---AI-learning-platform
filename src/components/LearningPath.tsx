@@ -27,6 +27,7 @@ export function LearningPath({
   topicTitle,
   topicSummary,
   topicId,
+  sourceContent,
   assessmentScore,
   assessmentFeedback,
   learningStyle,
@@ -41,6 +42,7 @@ export function LearningPath({
   topicTitle?: string;
   topicSummary?: string;
   topicId?: string;
+  sourceContent?: string;
   assessmentScore?: number | null;
   assessmentFeedback?: Feedback | null;
   learningStyle: LearningStyleProfile | null;
@@ -207,7 +209,10 @@ export function LearningPath({
         {topicId && items.length > 0 && !postSourcePassed && (
           <PostSourceQuiz
             topicId={topicId}
-            concepts={items}
+            concepts={concepts}
+            topicSummary={topicSummary}
+            topicTitle={topicTitle}
+            sourceContent={sourceContent}
             misconceptions={assessmentFeedback?.misconceptions}
             onPassed={() => onPostSourcePassed?.()}
             onShowRetry={() => {}}

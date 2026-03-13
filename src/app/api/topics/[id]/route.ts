@@ -100,6 +100,7 @@ export async function GET(
       concepts,
       checklist,
       rawSources: topic.raw_sources ?? [],
+      sourceContent: (topic as { source_content?: string }).source_content ?? "",
       currentStep: topic.current_step ?? "upload",
       understandingScore: topic.understanding_score ?? progress?.assessment_score,
       lastSessionSummary,

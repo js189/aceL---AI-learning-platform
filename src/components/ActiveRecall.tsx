@@ -4,7 +4,7 @@ import { useState } from "react";
 import { getActiveRecall, setActiveRecall } from "@/lib/storage";
 import { recordStudyActivity } from "@/lib/streak";
 import { dispatchProgressUpdate } from "@/lib/progressEvents";
-import { RECALL_INTERVALS, getNextDueDate, isDue, getIntervalLabel } from "@/lib/activeRecall";
+import { RECALL_INTERVALS, getNextDueDate, getStartOfNextDay, isDue, getIntervalLabel, ensureDay1DueTomorrow } from "@/lib/activeRecall";
 import type { Concept } from "@/types";
 
 type Question = {
@@ -35,7 +35,9 @@ export function ActiveRecall({
   const qualified = assessmentScore >= 90 || (postSourceUnlock && assessmentScore >= 85);
   const [schedule, setSchedule] = useState(() => {
     const saved = getActiveRecall(topicId);
-    if (saved) return saved;
+    if (saved) {
+      return ensureDay1DueTomorrow(saved, setActiveRecall);
+    }
     if (qualified) {
       const now = new Date().toISOString();
       const newSchedule = {
@@ -43,8 +45,8 @@ export function ActiveRecall({
         topicTitle,
         unlockedAt: now,
         currentInterval: 0,
-        // Day 1 is due immediately when first unlocked (no results yet)
-        nextDueAt: now,
+        // Day 1 is due at start of next calendar day (button appears tomorrow, not today)
+        nextDueAt: getStartOfNextDay(),
         results: [] as { intervalDay: number; score: number; passed: boolean; date: string }[],
         lastResult: undefined as { score: number; passed: boolean } | undefined,
       };

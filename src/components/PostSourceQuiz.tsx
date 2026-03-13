@@ -31,6 +31,9 @@ const PASS_THRESHOLD = 85;
 export function PostSourceQuiz({
   topicId,
   concepts,
+  topicSummary,
+  topicTitle,
+  sourceContent,
   misconceptions,
   onPassed,
   onShowRetry,
@@ -38,6 +41,9 @@ export function PostSourceQuiz({
 }: {
   topicId: string;
   concepts: Concept[];
+  topicSummary?: string;
+  topicTitle?: string;
+  sourceContent?: string;
   misconceptions?: string[];
   onPassed: () => void;
   onShowRetry: (missed: string[]) => void;
@@ -83,6 +89,9 @@ export function PostSourceQuiz({
           concepts: concepts.map((c) => ({ title: c.title, description: c.description })),
           sourceMaterial: true,
           freshRecall: true,
+          topicSummary: topicSummary?.trim() || undefined,
+          topicTitle: topicTitle?.trim() || undefined,
+          sourceContent: sourceContent?.trim() || undefined,
         }),
       });
       const data = await res.json();

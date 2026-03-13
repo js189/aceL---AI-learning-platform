@@ -31,6 +31,7 @@ export default function UploadPage() {
     summary: string;
     concepts: { id: string; title: string }[];
     checklist: { id: string; title: string; completed: boolean; source?: string }[];
+    sourceContent?: string;
   }) {
     const topicId = data.topicId ?? encodeURIComponent(data.title);
     const topics = JSON.parse(localStorage.getItem("adaptive-learning-topics") ?? "[]");
@@ -40,6 +41,7 @@ export default function UploadPage() {
       summary: data.summary,
       concepts: data.concepts,
       checklist: data.checklist,
+      sourceContent: data.sourceContent ?? "",
     });
     localStorage.setItem("adaptive-learning-topics", JSON.stringify(topics));
     router.push(`/dashboard/topic/${topicId}`);
