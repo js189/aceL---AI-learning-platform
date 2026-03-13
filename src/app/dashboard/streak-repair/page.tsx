@@ -11,6 +11,7 @@ type Question = {
   question: string;
   options?: string[];
   expectedAnswer: string;
+  explanation?: string;
 };
 
 type TopicConcept = { title: string; description?: string };
@@ -59,7 +60,7 @@ export default function StreakRepairPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      const qs = (data.questions ?? []).slice(0, 8);
+      const qs = (data.mainQuiz ?? data.questions ?? []).slice(0, 8);
       setQuestions(qs);
       setCurrentQ(0);
       setAnswers({});

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { featherless, FEATHERLESS_FAST_MODEL } from "@/lib/featherless";
+import { llm, LLM_FAST_MODEL } from "@/lib/llm";
 
 const ASSESSMENT_SYSTEM = `You are a warm, expert tutor assessing a student's understanding. You must respond with a single JSON object (no markdown, no extra text) in this exact shape:
 
@@ -51,8 +51,8 @@ export async function POST(req: NextRequest) {
         ? `Concept: ${conceptTitle}\n${conceptContext ? `Context: ${conceptContext}\n` : ""}Student's answer: ${studentResponse}\nExpected answer (for reference): ${expectedAnswer}\n\nAssess the student's answer and return the JSON object.`
         : `Concept: ${conceptTitle}\n${conceptContext ? `Context: ${conceptContext}\n` : ""}Student's explanation:\n${studentResponse}\n\nAssess for DEEP understanding: Did they explain why, connect ideas, use examples, address nuance? Or just give surface definitions? Return the JSON object.`;
 
-    const completion = await featherless.chat.completions.create({
-      model: FEATHERLESS_FAST_MODEL,
+    const completion = await llm.chat.completions.create({
+      model: LLM_FAST_MODEL,
       messages: [
         { role: "system", content: ASSESSMENT_SYSTEM },
         { role: "user", content: userPrompt },

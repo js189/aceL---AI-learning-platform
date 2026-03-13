@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { YoutubeTranscript } from "youtube-transcript-plus";
-import { featherless, FEATHERLESS_CHAT_MODEL } from "@/lib/featherless";
+import { llm, LLM_MAIN_MODEL } from "@/lib/llm";
 
 const USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
@@ -61,8 +61,8 @@ async function fetchVideoFallback(
     const minimal =
       author ? `Video: "${title}" by ${author}` : `Video: "${title}"`;
 
-    const completion = await featherless.chat.completions.create({
-      model: FEATHERLESS_CHAT_MODEL,
+    const completion = await llm.chat.completions.create({
+      model: LLM_MAIN_MODEL,
       messages: [
         { role: "system", content: SUMMARISE_SYSTEM },
         {
@@ -174,8 +174,8 @@ export async function POST(req: NextRequest) {
 
     const truncated = fullText.slice(0, 14000);
 
-    const completion = await featherless.chat.completions.create({
-      model: FEATHERLESS_CHAT_MODEL,
+    const completion = await llm.chat.completions.create({
+      model: LLM_MAIN_MODEL,
       messages: [
         { role: "system", content: SUMMARISE_SYSTEM },
         { role: "user", content: `Transcript:\n${truncated}` },

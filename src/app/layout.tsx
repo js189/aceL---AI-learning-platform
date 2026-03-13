@@ -1,6 +1,7 @@
 import "./globals.css";
 import { Quicksand } from "next/font/google";
 import { Providers } from "@/components/Providers";
+import type { Metadata } from "next";
 
 const quicksand = Quicksand({
   subsets: ["latin"],
@@ -8,9 +9,12 @@ const quicksand = Quicksand({
   variable: "--font-quicksand",
 });
 
-export const metadata = {
-  title: "aceL — Adaptive Learning",
-  description: "AI-powered adaptive learning for students. Stuck with study? Let aceL help you.",
+const metadataBase = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXTAUTH_URL || "https://acel.app";
+
+export const metadata: Metadata = {
+  title: "AceL — Intelligent Learning Platform",
+  description: "AceL — Intelligent Learning Platform",
+  metadataBase: new URL(metadataBase),
 };
 
 export const viewport = {

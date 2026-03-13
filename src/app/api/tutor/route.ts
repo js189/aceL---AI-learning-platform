@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { featherless, FEATHERLESS_FAST_MODEL, FEATHERLESS_VISION_MODEL } from "@/lib/featherless";
+import { llm, LLM_FAST_MODEL, LLM_VISION_MODEL } from "@/lib/llm";
 
 const MAX_IMAGE_SIZE_MB = 10;
 const MAX_IMAGE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
 
     const systemContent = `${TUTOR_SYSTEM}\n\nYou are helping the student understand: ${conceptTitle}.${conceptContext ? `\nContext: ${conceptContext}` : ""}\nAsk one question at a time and build on their answers.`;
 
-    const model = imageFile ? FEATHERLESS_VISION_MODEL : FEATHERLESS_FAST_MODEL;
+    const model = imageFile ? LLM_VISION_MODEL : LLM_FAST_MODEL;
     const mappedMessages = messages.slice(-12).map((m: { role: string; content: string }, i: number) => {
       const isLastUser = i === messages.slice(-12).length - 1 && m.role === "user";
       if (isLastUser && imageFile) {
@@ -86,12 +86,12 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const completion = await featherless.chat.completions.create({
+    const completion = await llm.chat.completions.create({
       model,
       messages: [
         { role: "system", content: systemContent },
         ...mappedMessages,
-      ] as Parameters<typeof featherless.chat.completions.create>[0]["messages"],
+      ] as Parameters<typeof llm.chat.completions.create>[0]["messages"],
       max_tokens: 350,
       temperature: 0.6,
     });

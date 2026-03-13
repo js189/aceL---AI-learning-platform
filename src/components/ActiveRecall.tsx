@@ -13,6 +13,7 @@ type Question = {
   question: string;
   options?: string[];
   expectedAnswer: string;
+  explanation?: string;
 };
 
 export function ActiveRecall({
@@ -77,7 +78,7 @@ export function ActiveRecall({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      const qs = data.questions ?? [];
+      const qs = data.mainQuiz ?? data.questions ?? [];
       setQuestions(qs.slice(0, 5));
       setCurrentQ(0);
       setAnswers({});

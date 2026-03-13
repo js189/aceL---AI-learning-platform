@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { featherless, FEATHERLESS_CHAT_MODEL } from "@/lib/featherless";
+import { llm, LLM_MAIN_MODEL } from "@/lib/llm";
 
 export const dynamic = "force-dynamic";
 
@@ -23,11 +23,10 @@ function extractApiError(e: unknown): { message: string; status?: number; code?:
 /**
  * GET /api/ai-test
  * Tests if the Featherless API key works. Returns connection status.
- * Uses models.list() first (no credits) then optional chat test.
  */
 export async function GET() {
   const apiKey = cleanEnv(process.env.FEATHERLESS_API_KEY);
-  const baseURL = cleanEnv(process.env.NEXT_PUBLIC_FEATHERLESS_BASE_URL) || "https://api.featherless.ai/v1";
+  const baseURL = (cleanEnv(process.env.NEXT_PUBLIC_FEATHERLESS_BASE_URL) || "https://api.featherless.ai/v1").replace(/\/+$/, "");
 
   if (!apiKey) {
     return NextResponse.json({
@@ -40,18 +39,16 @@ export async function GET() {
   const keyPrefix = apiKey.length >= 10 ? `${apiKey.slice(0, 6)}...${apiKey.slice(-4)}` : "***";
 
   try {
-    // Optional: verify auth with models list (no credits)
     let modelIds: string[] = [];
     try {
-      const { data: models } = await featherless.models.list();
+      const { data: models } = await llm.models.list();
       modelIds = (models ?? []).slice(0, 5).map((m) => m.id);
     } catch {
       // models.list may not be supported; continue with chat test
     }
 
-    // Quick chat test
-    const completion = await featherless.chat.completions.create({
-      model: FEATHERLESS_CHAT_MODEL,
+    const completion = await llm.chat.completions.create({
+      model: LLM_MAIN_MODEL,
       messages: [{ role: "user", content: "Reply with exactly: OK" }],
       max_tokens: 10,
       temperature: 0,
@@ -61,7 +58,7 @@ export async function GET() {
     return NextResponse.json({
       ok: true,
       message: "API key is working",
-      model: FEATHERLESS_CHAT_MODEL,
+      model: LLM_MAIN_MODEL,
       baseURL,
       keyPrefix,
       modelsListed: modelIds.length,
@@ -74,7 +71,7 @@ export async function GET() {
     if (status === 401 || message.includes("401") || /incorrect|invalid.*key|unauthorized/i.test(message)) {
       hint = "Your API key may be invalid or expired. Get a new key from https://featherless.ai/account/api-keys";
     } else if (status === 404 || message.includes("404") || /model.*not.*found/i.test(message)) {
-      hint = `Model "${FEATHERLESS_CHAT_MODEL}" may not be available. Check https://featherless.ai/models for valid model IDs.`;
+      hint = `Model "${LLM_MAIN_MODEL}" may not be available. Check https://featherless.ai/models for valid model IDs.`;
     } else if (status === 429 || message.includes("429")) {
       hint = "Rate limit exceeded. Wait a moment and try again.";
     } else if (message.includes("ENOTFOUND") || message.includes("fetch")) {
@@ -86,7 +83,7 @@ export async function GET() {
       error: message,
       status,
       hint,
-      model: FEATHERLESS_CHAT_MODEL,
+      model: LLM_MAIN_MODEL,
       baseURL,
       keyPrefix,
     }, { status: 500 });

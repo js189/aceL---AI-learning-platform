@@ -11,7 +11,7 @@ type PendingItem =
   | { type: "image"; id: string; file: File; ocrText?: string }
   | { type: "youtube"; id: string; url: string };
 
-const MAX_COMBINED_CHARS = 24000; // Allow more content for multi-source
+const MAX_COMBINED_CHARS = 180000; // ~45k tokens, analyze route chunks above ~30k tokens
 
 export default function UploadPage() {
   const router = useRouter();
@@ -21,6 +21,7 @@ export default function UploadPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [progress, setProgress] = useState("");
+  const [progressPct, setProgressPct] = useState(0);
 
   const addId = useCallback(() => Math.random().toString(36).slice(2), []);
 
@@ -116,6 +117,7 @@ export default function UploadPage() {
 
     setError("");
     setLoading(true);
+    setProgressPct(0);
     const parts: string[] = [];
 
     try {
@@ -174,6 +176,7 @@ export default function UploadPage() {
       }
 
       setProgress("Building your learning schedule…");
+      setProgressPct(28);
       const combined = parts.join("\n\n");
       let textToAnalyze = combined.slice(0, MAX_COMBINED_CHARS);
       if (combined.length > MAX_COMBINED_CHARS) {
@@ -183,10 +186,42 @@ export default function UploadPage() {
       const analyzeRes = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: textToAnalyze, sourceLabel: "mixed" }),
+        body: JSON.stringify({ text: textToAnalyze, sourceLabel: "mixed", streamProgress: true }),
       });
-      const analyzeData = await analyzeRes.json().catch(() => ({}));
-      if (!analyzeRes.ok) throw new Error(analyzeData.error || "Analysis failed");
+      if (!analyzeRes.ok || !analyzeRes.body) {
+        const fallback = await analyzeRes.json().catch(() => ({}));
+        throw new Error(fallback.error || "Analysis failed");
+      }
+
+      const reader = analyzeRes.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let analyzeData: any = null;
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const events = buffer.split("\n\n");
+        buffer = events.pop() ?? "";
+        for (const evt of events) {
+          const lines = evt.split("\n");
+          const eventName = lines.find((l) => l.startsWith("event:"))?.slice(6).trim();
+          const dataLine = lines.find((l) => l.startsWith("data:"))?.slice(5).trim();
+          if (!dataLine) continue;
+          const payload = JSON.parse(dataLine);
+          if (eventName === "progress") {
+            const pct = Number(payload.percent ?? 0);
+            setProgressPct(Math.max(0, Math.min(100, pct)));
+            setProgress(payload.stage ? `Analyzing document... ${pct}% - ${payload.stage}` : `Analyzing document... ${pct}%`);
+          } else if (eventName === "done") {
+            analyzeData = payload;
+            setProgressPct(100);
+          } else if (eventName === "error") {
+            throw new Error(payload.error || "Analysis failed");
+          }
+        }
+      }
+      if (!analyzeData) throw new Error("Analysis stream ended unexpectedly");
       saveTopicAndRedirect(analyzeData);
       setItems([]);
       setNotesText("");
@@ -195,6 +230,7 @@ export default function UploadPage() {
     } finally {
       setLoading(false);
       setProgress("");
+      setProgressPct(0);
     }
   }
 
@@ -348,7 +384,19 @@ export default function UploadPage() {
             </div>
           )}
 
-          {progress && <p className="mt-4 text-sm text-deep-charcoal/70">{progress}</p>}
+          {progress && (
+            <div className="mt-4">
+              <p className="text-sm text-deep-charcoal/70">{progress}</p>
+              {loading && (
+                <div className="mt-2 h-2 w-full rounded-full bg-warm-sand/70">
+                  <div
+                    className="h-2 rounded-full bg-dusty-blue transition-all"
+                    style={{ width: `${progressPct}%` }}
+                  />
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="mt-6 flex flex-col-reverse sm:flex-row gap-3">
             <button

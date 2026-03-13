@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { featherless, FEATHERLESS_FAST_MODEL } from "@/lib/featherless";
+import { llm, LLM_FAST_MODEL } from "@/lib/llm";
 
 const STYLE_SYSTEM = `You must respond with ONLY a valid JSON object. No markdown, no explanation, no other text.
 
@@ -52,8 +52,8 @@ export async function POST(req: NextRequest) {
 
     const prompt = QUESTIONS.map((q, i) => `Q: ${q}\nA: ${answers[i] ?? ""}`).join("\n\n");
 
-    const completion = await featherless.chat.completions.create({
-      model: FEATHERLESS_FAST_MODEL,
+    const completion = await llm.chat.completions.create({
+      model: LLM_FAST_MODEL,
       messages: [
         { role: "system", content: STYLE_SYSTEM },
         { role: "user", content: prompt },

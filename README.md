@@ -1,6 +1,6 @@
 # aceL - AI Learning Platform
 
-Full-stack adaptive learning web app using the **Featherless AI API**. Students master any topic through personalised AI tutoring, adaptive learning paths, and collaborative learning.
+Full-stack adaptive learning web app using the **Groq API**. Students master any topic through personalised AI tutoring, adaptive learning paths, and collaborative learning.
 
 ## Features
 
@@ -13,7 +13,7 @@ Full-stack adaptive learning web app using the **Featherless AI API**. Students 
 ## Tech stack
 
 - **Frontend**: Next.js 14 (App Router), Tailwind CSS
-- **AI**: Featherless API (OpenAI-compatible) for chat and vision (OCR)
+- **AI**: Groq API (OpenAI-compatible) for chat and vision (OCR)
 - **Auth**: NextAuth (email + Google)
 - **Storage**: Supabase (optional; app works with localStorage for demo)
 - **YouTube**: `youtube-transcript` for captions
@@ -32,8 +32,9 @@ Full-stack adaptive learning web app using the **Featherless AI API**. Students 
 
    Copy `.env.local.example` to `.env.local` and set:
 
-   - `FEATHERLESS_API_KEY` — from [Featherless](https://featherless.ai)
+   - `GROQ_API_KEY` — from [Groq](https://console.groq.com/keys)
    - `NEXTAUTH_URL` — e.g. `http://localhost:3000`
+   - `NEXT_PUBLIC_BASE_URL` — e.g. `http://localhost:3000` in dev, `https://acel.app` in production
    - `NEXTAUTH_SECRET` — e.g. `openssl rand -base64 32`
    - Optional: Google OAuth `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
    - Optional: Supabase `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
@@ -48,7 +49,7 @@ Full-stack adaptive learning web app using the **Featherless AI API**. Students 
    npm run dev
    ```
 
-   Open [http://localhost:3000](http://localhost:3000). Sign in with “Continue with demo” or Google, then go to **Upload** to add content.
+   Open your configured base URL (for local dev, [http://localhost:3000](http://localhost:3000)). Sign in with “Continue with demo” or Google, then go to **Upload** to add content.
 
 ## MVP build order (implemented)
 

@@ -3,15 +3,15 @@
 If "Continue with Google" fails, check these in [Google Cloud Console](https://console.cloud.google.com/apis/credentials):
 
 ## 1. Authorized redirect URIs
-Add this **exact** URI (no trailing slash):
+Add this **exact** URI based on `NEXT_PUBLIC_BASE_URL` (no trailing slash):
 ```
-http://localhost:3000/api/auth/callback/google
+${NEXT_PUBLIC_BASE_URL}/api/auth/callback/google
 ```
 
 ## 2. Authorized JavaScript origins
-Add:
+Add your base URL:
 ```
-http://localhost:3000
+${NEXT_PUBLIC_BASE_URL}
 ```
 
 ## 3. OAuth consent screen

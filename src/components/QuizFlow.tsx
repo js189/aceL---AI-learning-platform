@@ -25,7 +25,12 @@ type Question = {
   question: string;
   options?: string[];
   expectedAnswer: string;
+  explanation?: string;
 };
+
+function isCorrectMC(selected: string, expected: string): boolean {
+  return String(selected).trim() === String(expected).trim();
+}
 
 export function QuizFlow({
   concepts,
@@ -56,6 +61,8 @@ export function QuizFlow({
   } | null>(null);
   const [quizScores, setQuizScores] = useState<number[]>([]);
   const [quizStarted, setQuizStarted] = useState(false);
+  const [answerRevealed, setAnswerRevealed] = useState(false);
+  const [lastCorrect, setLastCorrect] = useState(false);
   const [apiError, setApiError] = useState("");
   const accumulatedCorrect = useRef<string[]>([]);
   const accumulatedMisconceptions = useRef<string[]>([]);
@@ -75,11 +82,12 @@ export function QuizFlow({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      setQuestions(data.questions ?? []);
+      setQuestions(data.questions ?? data.mainQuiz ?? []);
       setCurrentQ(0);
       setAnswers({});
       setQuizStarted(false);
       setQuizScores([]);
+      setAnswerRevealed(false);
       setResult(null);
       accumulatedCorrect.current = [];
       accumulatedMisconceptions.current = [];
@@ -116,47 +124,66 @@ export function QuizFlow({
     }
   }
 
-  async function assessQuiz() {
+  async function checkAnswerAndReveal() {
     const q = questions[currentQ];
     const answer = answers[q?.id ?? ""];
-    if (!q || answer === undefined || (q.type === "short" && !String(answer).trim())) return;
-    setAssessing(true);
-    try {
-      const res = await fetch("/api/assess", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          conceptTitle: q.question,
-          studentResponse: answer,
-          expectedAnswer: q.expectedAnswer,
-          mode: "quiz",
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      setApiError("");
-      if (Array.isArray(data.correct)) accumulatedCorrect.current.push(...data.correct);
-      if (Array.isArray(data.misconceptions)) accumulatedMisconceptions.current.push(...data.misconceptions);
-      if (Array.isArray(data.unfamiliar)) accumulatedUnfamiliar.current.push(...data.unfamiliar);
+    if (!q || answer === undefined) return;
+    if (q.type === "short" && !String(answer).trim()) return;
 
-      const newScores = [...quizScores, data.score];
-      setQuizScores(newScores);
-      if (currentQ + 1 >= questions.length) {
-        const avgScore = Math.round(newScores.reduce((a, b) => a + b, 0) / newScores.length);
-        setResult({
-          score: avgScore,
-          reasoning: data.reasoning ?? "Assessment complete.",
-          correct: mergeDedup<string>(accumulatedCorrect.current),
-          misconceptions: mergeDedup<string>(accumulatedMisconceptions.current),
-          unfamiliar: mergeDedup<string>(accumulatedUnfamiliar.current),
+    if (q.type === "mcq") {
+      const correct = isCorrectMC(answer, q.expectedAnswer);
+      setLastCorrect(correct);
+      setAnswerRevealed(true);
+      setQuizScores((prev) => [...prev, correct ? 100 : 0]);
+    } else {
+      setAssessing(true);
+      setApiError("");
+      try {
+        const res = await fetch("/api/assess", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            conceptTitle: q.question,
+            studentResponse: answer,
+            expectedAnswer: q.expectedAnswer,
+            mode: "quiz",
+          }),
         });
-      } else {
-        setCurrentQ((c) => c + 1);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+        if (Array.isArray(data.correct)) accumulatedCorrect.current.push(...data.correct);
+        if (Array.isArray(data.misconceptions)) accumulatedMisconceptions.current.push(...data.misconceptions);
+        if (Array.isArray(data.unfamiliar)) accumulatedUnfamiliar.current.push(...data.unfamiliar);
+        setLastCorrect((data.score ?? 0) >= 70);
+        setAnswerRevealed(true);
+        setQuizScores((prev) => [...prev, data.score ?? 0]);
+      } catch (e) {
+        setApiError(e instanceof Error ? e.message : "Assessment failed");
+      } finally {
+        setAssessing(false);
       }
-    } catch (e) {
-      setApiError(e instanceof Error ? e.message : "Assessment failed");
-    } finally {
-      setAssessing(false);
+    }
+    setApiError("");
+  }
+
+  function goToNextQuestion() {
+    advanceToNext();
+  }
+
+  function advanceToNext() {
+    setAnswerRevealed(false);
+    if (currentQ + 1 >= questions.length) {
+      const scores = quizScores;
+      const avgScore = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
+      setResult({
+        score: avgScore,
+        reasoning: "Assessment complete.",
+        correct: mergeDedup<string>(accumulatedCorrect.current),
+        misconceptions: mergeDedup<string>(accumulatedMisconceptions.current),
+        unfamiliar: mergeDedup<string>(accumulatedUnfamiliar.current),
+      });
+    } else {
+      setCurrentQ((c) => c + 1);
     }
   }
 
@@ -349,6 +376,9 @@ export function QuizFlow({
   const q = questions[currentQ];
   if (!q) return null;
 
+  const userAnswer = answers[q.id];
+  const showAnswerPanel = answerRevealed && (q.type === "mcq" || q.type === "short");
+
   return (
     <FullscreenWrap className={fullscreenClass}>
     <div className="mx-auto max-w-xl w-full">
@@ -359,15 +389,27 @@ export function QuizFlow({
         <ul className="mt-4 space-y-2">
           {q.options.map((opt, i) => (
             <li key={i}>
-              <label className="flex cursor-pointer items-center gap-3 py-3 sm:py-2 px-4 min-h-[52px] sm:min-h-0 rounded-input border-2 border-warm-sand/50 hover:border-dusty-blue/50 active:border-dusty-blue/50 has-[:checked]:border-dusty-blue has-[:checked]:bg-dusty-blue/5 transition touch-manipulation">
+              <label className={`flex items-center gap-3 py-3 sm:py-2 px-4 min-h-[52px] sm:min-h-0 rounded-input border-2 transition touch-manipulation ${
+                showAnswerPanel
+                  ? opt === q.expectedAnswer
+                    ? "border-sage bg-sage/10 cursor-default"
+                    : answers[q.id] === opt && !lastCorrect
+                    ? "border-terracotta/50 bg-terracotta/5 cursor-default"
+                    : "border-warm-sand/30 bg-warm-sand/5 cursor-default opacity-75"
+                  : "border-warm-sand/50 hover:border-dusty-blue/50 cursor-pointer has-[:checked]:border-dusty-blue has-[:checked]:bg-dusty-blue/5"
+              }`}>
                 <input
                   type="radio"
                   name={q.id}
                   checked={answers[q.id] === opt}
-                  onChange={() => setAnswers((a) => ({ ...a, [q.id]: opt }))}
+                  onChange={() => !showAnswerPanel && setAnswers((a) => ({ ...a, [q.id]: opt }))}
+                  disabled={showAnswerPanel}
                   className="border-dusty-blue text-dusty-blue focus:ring-dusty-blue w-5 h-5 shrink-0"
                 />
                 <span className="text-deep-charcoal flex-1 min-w-0">{opt}</span>
+                {showAnswerPanel && opt === q.expectedAnswer && (
+                  <span className="text-sage font-medium">✓ Correct</span>
+                )}
               </label>
             </li>
           ))}
@@ -378,17 +420,53 @@ export function QuizFlow({
           onChange={(e) => setAnswers((a) => ({ ...a, [q.id]: e.target.value }))}
           placeholder="Your answer..."
           rows={4}
-          className="mt-4 w-full rounded-input border-2 border-warm-sand/80 bg-cream px-4 py-3 text-deep-charcoal placeholder:text-deep-charcoal/40 focus:border-dusty-blue focus:outline-none"
+          disabled={showAnswerPanel}
+          className="mt-4 w-full rounded-input border-2 border-warm-sand/80 bg-cream px-4 py-3 text-deep-charcoal placeholder:text-deep-charcoal/40 focus:border-dusty-blue focus:outline-none disabled:opacity-80"
         />
       )}
+
+      {showAnswerPanel ? (
+        <div className="mt-6 space-y-4">
+          <div className={`rounded-r-button border-l-4 p-4 ${
+            lastCorrect ? "border-sage bg-sage/10" : "border-terracotta bg-terracotta/10"
+          }`}>
+            <p className="font-medium text-deep-charcoal">
+              {lastCorrect ? "✓ Correct!" : "✗ Incorrect"}
+            </p>
+            {!lastCorrect && q.expectedAnswer && (
+              <p className="mt-2 text-deep-charcoal/90 text-sm">
+                <span className="font-medium">Correct answer:</span> {q.expectedAnswer}
+              </p>
+            )}
+            {q.explanation && (
+              <p className="mt-3 text-deep-charcoal/80 text-sm leading-relaxed border-t border-warm-sand/40 pt-3">
+                {q.explanation}
+              </p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={goToNextQuestion}
+            disabled={assessing}
+            className="w-full sm:w-auto rounded-button bg-dusty-blue px-8 py-3 sm:py-2.5 text-sm font-medium text-white hover:brightness-95 disabled:opacity-50 transition cursor-pointer min-h-[48px]"
+          >
+            {assessing ? "Assessing…" : currentQ + 1 >= questions.length ? "See results" : "Next question"}
+          </button>
+        </div>
+      ) : (
         <button
           type="button"
-          onClick={assessQuiz}
-          disabled={assessing || answers[q.id] === undefined || (q.type === "short" && !String(answers[q.id] ?? "").trim())}
+          onClick={checkAnswerAndReveal}
+          disabled={userAnswer === undefined || (q.type === "short" && !String(userAnswer ?? "").trim())}
           className="mt-6 w-full sm:w-auto rounded-button bg-dusty-blue px-8 py-3 sm:py-2.5 text-sm font-medium text-white hover:brightness-95 disabled:opacity-50 disabled:cursor-not-allowed transition cursor-pointer min-h-[48px]"
         >
-          {assessing ? "Assessing…" : currentQ + 1 >= questions.length ? "Finish" : "Next"}
+          Check answer
         </button>
+      )}
+
+      {apiError && (
+        <p className="mt-3 text-sm text-terracotta">{apiError}</p>
+      )}
       </div>
     </div>
     </FullscreenWrap>

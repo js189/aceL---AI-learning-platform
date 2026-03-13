@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { featherless, FEATHERLESS_VISION_MODEL } from "@/lib/featherless";
+import { llm, LLM_VISION_MODEL } from "@/lib/llm";
 
 const OCR_SYSTEM = `You are an OCR assistant for student handwritten notes. Your task:
 1. Extract ALL readable text from the image, preserving structure (headings, bullet points, numbered lists).
@@ -41,8 +41,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const completion = await featherless.chat.completions.create({
-      model: FEATHERLESS_VISION_MODEL,
+    const completion = await llm.chat.completions.create({
+      model: LLM_VISION_MODEL,
       messages: [
         { role: "system", content: OCR_SYSTEM },
         {
