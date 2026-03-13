@@ -162,7 +162,6 @@ export function QuizFlow({
       } finally {
         setAssessing(false);
       }
-      }
     }
     setApiError("");
   }
@@ -344,12 +343,11 @@ export function QuizFlow({
   }
 
   const inQuizFlow = questions.length > 0 && !result;
-  const FullscreenWrap = fullscreen && inQuizFlow ? "div" : "div";
   const fullscreenClass = fullscreen && inQuizFlow ? "fixed inset-0 z-[9999] bg-cream overflow-auto flex flex-col items-center justify-center p-4 sm:p-6 pb-safe" : "";
 
   if (questions.length > 0 && !quizStarted) {
     return (
-      <FullscreenWrap className={fullscreenClass}>
+      <div className={fullscreenClass || undefined}>
       <div className="mx-auto max-w-xl w-full rounded-card border border-warm-sand/80 bg-cream p-4 sm:p-6 shadow-subtle">
         <h3 className="font-semibold text-deep-charcoal">Ready to start?</h3>
         <p className="mt-2 text-deep-charcoal/80 text-sm">You have {questions.length} question{questions.length !== 1 ? "s" : ""}. Answer each one and we&apos;ll assess your understanding.</p>
@@ -370,7 +368,7 @@ export function QuizFlow({
           </button>
         </div>
       </div>
-      </FullscreenWrap>
+      </div>
     );
   }
 
@@ -381,7 +379,7 @@ export function QuizFlow({
   const showAnswerPanel = answerRevealed && (q.type === "mcq" || q.type === "short");
 
   return (
-    <FullscreenWrap className={fullscreenClass}>
+    <div className={fullscreenClass || undefined}>
     <div className="mx-auto max-w-xl w-full">
       <div className="rounded-card border border-warm-sand/80 bg-cream p-6 shadow-subtle">
         <p className="text-sm text-deep-charcoal/60">Question {currentQ + 1} of {questions.length}</p>
@@ -470,6 +468,6 @@ export function QuizFlow({
       )}
       </div>
     </div>
-    </FullscreenWrap>
+    </div>
   );
 }

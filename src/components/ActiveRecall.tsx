@@ -22,23 +22,29 @@ export function ActiveRecall({
   concepts,
   assessmentScore,
   onActivity,
+  postSourceUnlock,
 }: {
   topicId: string;
   topicTitle: string;
   concepts: Concept[];
   assessmentScore: number;
   onActivity?: () => void;
+  /** When true, unlocked via post-source quiz (85+); bypasses main assessment 90+ requirement */
+  postSourceUnlock?: boolean;
 }) {
+  const qualified = assessmentScore >= 90 || (postSourceUnlock && assessmentScore >= 85);
   const [schedule, setSchedule] = useState(() => {
     const saved = getActiveRecall(topicId);
     if (saved) return saved;
-    if (assessmentScore >= 90) {
+    if (qualified) {
+      const now = new Date().toISOString();
       const newSchedule = {
         topicId,
         topicTitle,
-        unlockedAt: new Date().toISOString(),
+        unlockedAt: now,
         currentInterval: 0,
-        nextDueAt: getNextDueDate(new Date().toISOString(), 0),
+        // Day 1 is due immediately when first unlocked (no results yet)
+        nextDueAt: now,
         results: [] as { intervalDay: number; score: number; passed: boolean; date: string }[],
         lastResult: undefined as { score: number; passed: boolean } | undefined,
       };
@@ -57,7 +63,7 @@ export function ActiveRecall({
   const [result, setResult] = useState<{ score: number } | null>(null);
   const [quizStarted, setQuizStarted] = useState(false);
 
-  if (assessmentScore < 90 || assessmentScore > 100) return null;
+  if (!qualified || assessmentScore > 100) return null;
   if (!schedule) return null;
 
   const due = isDue(schedule.nextDueAt);

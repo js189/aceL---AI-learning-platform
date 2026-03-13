@@ -10,6 +10,7 @@ import { ActiveRecall } from "@/components/ActiveRecall";
 import { TutorChat } from "@/components/TutorChat";
 import { recordStudyActivity } from "@/lib/streak";
 import { dispatchProgressUpdate } from "@/lib/progressEvents";
+import { getPostSourceQuiz } from "@/lib/storage";
 import type { Concept, ChecklistItem, LearningStyleProfile } from "@/types";
 
 type TopicData = {
@@ -43,6 +44,7 @@ export default function TopicPage({
   } | null>(null);
   const [learningPathCompleted, setLearningPathCompleted] = useState<string[]>([]);
   const [retakeMainAssessment, setRetakeMainAssessment] = useState(false);
+  const [postSourcePassed, setPostSourcePassed] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -68,6 +70,9 @@ export default function TopicPage({
               setUnfamiliarConcepts(json.progress.unfamiliarConcepts ?? []);
               setAssessmentFeedback(json.progress.assessmentFeedback ?? null);
               setLearningPathCompleted(json.progress.learningPathCompleted ?? []);
+            }
+            if (typeof window !== "undefined") {
+              setPostSourcePassed(getPostSourceQuiz(id)?.passed ?? false);
             }
             setLoading(false);
             return;
@@ -96,6 +101,7 @@ export default function TopicPage({
           setLearningPathCompleted(Array.isArray(progress.learningPathCompleted) ? progress.learningPathCompleted : []);
         } catch {}
       }
+      setPostSourcePassed(getPostSourceQuiz(id)?.passed ?? false);
       const styleRaw = localStorage.getItem("adaptive-learning-style");
       if (styleRaw) {
         try {
@@ -386,28 +392,39 @@ export default function TopicPage({
                   ? weakFromUnfamiliar
                   : data.concepts.map((c) => c.id);
               return (
-                <LearningPath
-                  concepts={data.concepts}
-                  weakConcepts={weakConceptsForPath}
-                  topicTitle={data.title}
-                  topicSummary={data.summary}
-                  topicId={id}
-                  assessmentScore={assessmentScore}
-                  assessmentFeedback={assessmentFeedback}
-                  learningStyle={learningStyle}
-                  onComplete={() => {}}
-                  onReturnToMainAssessment={() => setRetakeMainAssessment(true)}
-                  completedConceptIds={learningPathCompleted}
-                  onConceptComplete={async (conceptId) => {
-                    const next = [...learningPathCompleted, conceptId];
-                    setLearningPathCompleted(next);
-                    await persistProgress({
-                      conceptStatusUpdates: [{ conceptId, status: "mastered" }],
-                      learningPathCompleted: next,
-                    });
-                    dispatchProgressUpdate();
-                  }}
-                />
+                <>
+                  <LearningPath
+                    concepts={data.concepts}
+                    weakConcepts={weakConceptsForPath}
+                    topicTitle={data.title}
+                    topicSummary={data.summary}
+                    topicId={id}
+                    assessmentScore={assessmentScore}
+                    assessmentFeedback={assessmentFeedback}
+                    learningStyle={learningStyle}
+                    onComplete={() => {}}
+                    onPostSourcePassed={() => setPostSourcePassed(true)}
+                    completedConceptIds={learningPathCompleted}
+                    onConceptComplete={async (conceptId) => {
+                      const next = [...learningPathCompleted, conceptId];
+                      setLearningPathCompleted(next);
+                      await persistProgress({
+                        conceptStatusUpdates: [{ conceptId, status: "mastered" }],
+                        learningPathCompleted: next,
+                      });
+                      dispatchProgressUpdate();
+                    }}
+                  />
+                  {postSourcePassed && (
+                    <ActiveRecall
+                      topicId={id}
+                      topicTitle={data.title}
+                      concepts={data.concepts}
+                      assessmentScore={getPostSourceQuiz(id)?.score ?? 85}
+                      postSourceUnlock
+                    />
+                  )}
+                </>
               );
             })()
           )}

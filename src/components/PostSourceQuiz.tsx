@@ -34,12 +34,15 @@ export function PostSourceQuiz({
   misconceptions,
   onPassed,
   onShowRetry,
+  passedPrimaryLabel = "Go to Main Assessment",
 }: {
   topicId: string;
   concepts: Concept[];
   misconceptions?: string[];
   onPassed: () => void;
   onShowRetry: (missed: string[]) => void;
+  /** Label for the primary button when passed (e.g. "Go to Active Recall") */
+  passedPrimaryLabel?: string;
 }) {
   const { data: session } = useSession();
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -266,7 +269,7 @@ export function PostSourceQuiz({
                 onClick={onPassed}
                 className="rounded-button bg-dusty-blue px-6 py-2.5 text-sm font-medium text-white hover:brightness-95"
               >
-                Go to Main Assessment
+                {passedPrimaryLabel}
               </button>
               <button
                 onClick={handleRetry}

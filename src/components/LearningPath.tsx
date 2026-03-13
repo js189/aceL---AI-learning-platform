@@ -203,17 +203,18 @@ export function LearningPath({
           })}
         </ul>
 
-        {/* Post-Source Quiz - after studying unfamiliar concepts */}
-        {topicId && items.length > 0 && (
-          <>
-            <PostSourceQuiz
-              topicId={topicId}
-              concepts={items}
-              misconceptions={assessmentFeedback?.misconceptions}
-              onPassed={() => onPostSourcePassed?.()}
-              onShowRetry={() => {}}
-            />
-            {postSourcePassed && onReturnToMainAssessment && (
+        {/* Post-Source Quiz - after studying unfamiliar concepts; hide when passed */}
+        {topicId && items.length > 0 && !postSourcePassed && (
+          <PostSourceQuiz
+            topicId={topicId}
+            concepts={items}
+            misconceptions={assessmentFeedback?.misconceptions}
+            onPassed={() => onPostSourcePassed?.()}
+            onShowRetry={() => {}}
+            passedPrimaryLabel="Go to Active Recall"
+          />
+        )}
+        {postSourcePassed && topicId && onReturnToMainAssessment && (
               <div className="mt-6 rounded-card border border-sage/30 bg-sage/5 p-6">
                 <p className="font-medium text-deep-charcoal">Full marks on post-source quiz! Ready for the full assessment?</p>
                 <button
@@ -224,8 +225,6 @@ export function LearningPath({
                 </button>
               </div>
             )}
-          </>
-        )}
           </>
         )}
       </div>

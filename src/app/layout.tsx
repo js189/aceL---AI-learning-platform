@@ -9,7 +9,7 @@ const quicksand = Quicksand({
   variable: "--font-quicksand",
 });
 
-const metadataBase = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXTAUTH_URL || "https://acel.app";
+const metadataBase = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXTAUTH_URL || "http://localhost:3000";
 
 export const metadata: Metadata = {
   title: "aceL — Adaptive Learning",

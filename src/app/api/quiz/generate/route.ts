@@ -25,28 +25,33 @@ Use ONLY the provided source content. Be fast.`;
 const POST_QUIZ_PROMPT = `You are a strict JSON-only quiz generator for a post-source challenge quiz.
 Output ONLY a single valid JSON object — absolutely zero text outside the JSON. No markdown, no \`\`\`json, no comments, no introductions, no apologies — nothing except the raw JSON object.
 
-CRITICAL VARIATION RULES:
-- Every generation and every retry MUST produce completely fresh content.
-- Create entirely new questions — never reuse or slightly modify any previous question text, scenario, or answer choice from earlier generations.
-- This is a new attempt. Ignore everything you have generated before for this quiz.
-- You MUST vary: question phrasing, concepts emphasized, angles and scenarios, correct answers, and distractors. Zero overlap with prior versions.
+DIFFICULTY (CRITICAL) — HARDER THAN MAIN QUIZ:
+- Post-source is SIGNIFICANTLY MORE DIFFICULT than the main quiz. Main quiz = medium, tests basic understanding. Post-source = HARD.
+- Every question must require: application, synthesis, critical thinking, or analysis — not recall or definition.
+- Ask about edge cases, trade-offs, "what if" scenarios, prioritization, or comparison. No simple "what is X" questions.
+- Distractors must be subtle and plausible; the correct answer requires nuanced reasoning to identify.
+
+EACH QUESTION COMPLETELY DIFFERENT:
+- The 5 questions in this quiz must be COMPLETELY DIFFERENT from each other: different concepts, different scenarios, different question types.
+- No two questions should test the same concept in a similar way. No repeated phrasing or parallel structures.
+- Cover different angles: e.g. one on trade-offs, one on edge cases, one on application, one on limitations, one on comparison.
+- Each question and its choices must feel like a distinct, fresh challenge — never similar to another in the same quiz.
 
 MANDATORY STRUCTURE:
 - Exactly 5 multiple-choice questions. No more, no less.
 - Each question: {"question":"...?","options":{"A":"...","B":"...","C":"...","D":"..."},"correct":"X","explanation":"max 20 words"}
 - "correct" is exactly one uppercase letter: A, B, C, or D.
-- Randomize the correct answer position independently for each question. A/B/C/D should be roughly equally likely across the 5 questions.
+- Randomize the correct answer position independently for each question.
 
 QUESTION QUALITY:
-- Application, analysis, evaluation — harder than basic recall.
 - Each question ≤ 24 words. Each option ≤ 15 words.
-- Distractors plausible but clearly distinct from each other and from the correct answer. Never two options with similar meaning.
+- Distractors plausible but clearly distinct. Never two options with similar meaning.
 - All 4 options must be conceptually different.
 
 OUTPUT FORMAT:
 {"quiz_type":"post-source","title":"Post-Source Challenge Quiz","questions":[{"question":"...?","options":{"A":"...","B":"...","C":"...","D":"..."},"correct":"X","explanation":"..."}]}
 
-Use ONLY the provided source content. This generation must be noticeably different from any prior version in questions, scenarios, wording, and answer choices.`;
+Use ONLY the provided source content. Each of the 5 questions must be completely different and harder than a main quiz.`;
 
 type Q = { id: string; type: "mcq"; question: string; options: string[]; expectedAnswer: string; explanation?: string };
 
@@ -245,33 +250,52 @@ function makeFallbackMain(concepts: Array<{ title: string }>): Q[] {
   );
 }
 
+// 5 distinct fallback questions — each different, harder than main quiz. Used only when LLM fails.
+const FALLBACK_POST_QUESTIONS: Array<{ q: string; opts: string[]; correct: number; exp: string }> = [
+  { q: "When would you prioritize robustness over simplicity in this context?", opts: ["A. When assumptions are likely violated", "B. When sample size is small", "C. When results look perfect", "D. When time is limited"], correct: 0, exp: "Violated assumptions justify robust methods." },
+  { q: "What trade-off matters most when choosing an approach here?", opts: ["A. Power vs. validity under violations", "B. Speed vs. interpretability", "C. Cost vs. convenience", "D. Tradition vs. innovation"], correct: 0, exp: "Validity under violations is critical." },
+  { q: "Under what conditions would the standard approach fail?", opts: ["A. When key assumptions are violated", "B. When sample size is large", "C. When data is normally distributed", "D. When no outliers exist"], correct: 0, exp: "Violations undermine standard methods." },
+  { q: "Which is the best next step when assumptions are questionable?", opts: ["A. Use a robust or nonparametric alternative", "B. Proceed with the standard method", "C. Remove problematic data only", "D. Report without uncertainty"], correct: 0, exp: "Robust alternatives handle violations." },
+  { q: "What would a careful practitioner do when faced with uncertain assumptions?", opts: ["A. Check sensitivity and consider robust methods", "B. Assume assumptions hold", "C. Simplify the analysis", "D. Ignore violations"], correct: 0, exp: "Sensitivity checks inform decisions." },
+];
+
 function makeFallbackPost(concepts: Array<{ title: string }>): Q[] {
-  return (
-    concepts.slice(0, 5).map((c, i) => ({
-      id: `post-fallback-${i + 1}`,
-      type: "mcq" as const,
-      question: `${c.title}: best robust redesign under realistic violation?`,
-      expectedAnswer: `A. Use bootstrap resampling`,
-      options: [
-        `A. Use bootstrap resampling`,
-        `B. Inflate sample size only`,
-        `C. Change to Bayesian automatically`,
-        `D. Add Bonferroni correction`,
-      ],
-      explanation: `Bootstrap often improves robustness without changing the target question.`,
-    }))
-  );
+  const topic = concepts[0]?.title ?? "this topic";
+  return FALLBACK_POST_QUESTIONS.slice(0, 5).map((f, i) => ({
+    id: `post-fallback-${i + 1}`,
+    type: "mcq" as const,
+    question: `${topic} — ${f.q}`,
+    options: f.opts,
+    expectedAnswer: f.opts[f.correct],
+    explanation: f.exp,
+  }));
 }
 
 const POST_SOURCE_FOCUS_ANGLES = [
-  "Focus this quiz on trade-offs, prioritization, and when to choose one approach over another.",
-  "Focus this quiz on edge cases, failure modes, and when assumptions break down.",
-  "Focus this quiz on what-if scenarios and how changing assumptions affects outcomes.",
-  "Focus this quiz on application in different contexts and real-world use cases.",
-  "Focus this quiz on limitations, when NOT to use a technique, and common pitfalls.",
-  "Focus this quiz on deeper analysis, implications, and second-order effects.",
-  "Focus this quiz on comparison, contrast, and relative strengths of different approaches.",
-  "Focus this quiz on practical decision-making under constraints.",
+  "Focus on trade-offs, prioritization, and when to choose one approach over another. Harder than basic recall.",
+  "Focus on edge cases, failure modes, and when assumptions break down. Require reasoning.",
+  "Focus on what-if scenarios and how changing assumptions affects outcomes. Application-level.",
+  "Focus on application in different contexts and real-world use cases. No simple definitions.",
+  "Focus on limitations, when NOT to use a technique, and common pitfalls. Critical thinking.",
+  "Focus on deeper analysis, implications, and second-order effects. Synthesis required.",
+  "Focus on comparison, contrast, and relative strengths of different approaches. Nuanced judgment.",
+  "Focus on practical decision-making under constraints. Prioritization and trade-offs.",
+];
+
+// Force different question stems/framing each time — breaks similarity
+const QUESTION_STEM_STYLES = [
+  "Use question stems like: 'What would happen if...' 'Under what conditions...' 'Which is the best approach when...' 'A practitioner would...'",
+  "Use question stems like: 'Why might X fail when...' 'How would you prioritize...' 'What trade-off exists between...' 'In practice, when would...'",
+  "Use question stems like: 'Which assumption is most critical when...' 'What limitation applies to...' 'Compared to Y, X is better when...' 'Given constraints A and B...'",
+  "Use question stems like: 'What second-order effect would...' 'When would you avoid using...' 'How does context X change...' 'What would a critic say about...'",
+];
+
+// Anti-pattern: force model to avoid certain styles this round
+const ANTI_PATTERNS = [
+  "Do NOT use definition-style questions ('What is X?', 'Define Y') in this generation.",
+  "Do NOT repeat similar wording across questions. Each question must feel like a different scenario.",
+  "Do NOT put the correct answer in the same position (e.g. all B) — spread A/B/C/D randomly.",
+  "Do NOT use generic distractors. Each wrong answer must be plausible but uniquely wrong for a specific reason.",
 ];
 
 async function generateQuiz(
@@ -286,7 +310,15 @@ async function generateQuiz(
   const focusAngle = options?.forceVariation
     ? POST_SOURCE_FOCUS_ANGLES[Math.floor(Math.random() * POST_SOURCE_FOCUS_ANGLES.length)]
     : "";
+  const stemStyle = options?.forceVariation && QUESTION_STEM_STYLES
+    ? QUESTION_STEM_STYLES[Math.floor(Math.random() * QUESTION_STEM_STYLES.length)]
+    : "";
+  const antiPattern = options?.forceVariation && ANTI_PATTERNS
+    ? ANTI_PATTERNS[Math.floor(Math.random() * ANTI_PATTERNS.length)]
+    : "";
   const focusLine = focusAngle ? `\n${focusAngle}\n` : "";
+  const stemLine = stemStyle ? `\n${stemStyle}\n` : "";
+  const antiLine = antiPattern ? `\n${antiPattern}\n` : "";
   // Unique seed + nonce + timestamp per request to break provider caching and force different outputs
   const nonce = Math.random().toString(36).slice(2, 10);
   const seedInt = Math.floor(Math.random() * 2147483647);
@@ -294,7 +326,7 @@ async function generateQuiz(
   const userPrompt = `[req:${nonce}|ts:${ts}] Input material:
 """
 ${conceptsText}
-"""${focusLine}
+"""${focusLine}${stemLine}${antiLine}
 Generate now. Be extremely concise and fast.${retryHint}`;
 
   const llmParams: Parameters<typeof llm.chat.completions.create>[0] = {
@@ -304,7 +336,7 @@ Generate now. Be extremely concise and fast.${retryHint}`;
       { role: "user", content: userPrompt },
     ],
     max_tokens: 1400,
-    temperature: options?.forceVariation ? 1.0 : 0.8,
+    temperature: options?.forceVariation ? 1.15 : 0.8,
   };
   // Vary sampling seed per request so same input produces different outputs (breaks determinism/caching)
   if (options?.forceVariation) {
@@ -346,7 +378,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing or empty concepts" }, { status: 400 });
     }
 
+    // Build text for main quiz (stable order)
     const text = concepts
+      .map((c) => `${c.title}${c.description ? `: ${c.description}` : ""}`)
+      .join("\n");
+
+    // For post-source: shuffle concept order so each request has different input (breaks caching/similarity)
+    const shuffledConcepts = [...concepts].sort(() => Math.random() - 0.5);
+    const postSourceText = shuffledConcepts
       .map((c) => `${c.title}${c.description ? `: ${c.description}` : ""}`)
       .join("\n");
 
@@ -377,10 +416,13 @@ export async function POST(req: NextRequest) {
 
     if (sourceMaterial) {
       // Post-source request: only ONE LLM call — never generate main quiz here
-      // forceVariation: higher temp + unique seed so each call produces different questions
-      const postRaw = await generateQuiz(POST_QUIZ_PROMPT, text, model, learnStyle, isRetry, { forceVariation: true });
+      // forceVariation: shuffled concepts + random focus + stem style + unique seed = different questions every time
+      const postRaw = await generateQuiz(POST_QUIZ_PROMPT, postSourceText, model, learnStyle, isRetry, { forceVariation: true });
       postSourceQuiz = sanitizeQuestions(postRaw, "pq");
-      if (!postSourceQuiz.length) postSourceQuiz = makeFallbackPost(concepts);
+      if (!postSourceQuiz.length) {
+        console.warn("[quiz] Post-source LLM returned no valid questions, using fallback");
+        postSourceQuiz = makeFallbackPost(concepts);
+      }
       // Reuse cached main quiz if it exists, otherwise leave empty (frontend doesn't need it)
       mainQuiz = quizCache.get(stableHash)?.mainQuiz ?? [];
     } else {
@@ -389,9 +431,12 @@ export async function POST(req: NextRequest) {
       mainQuiz = sanitizeQuestions(mainRaw, "mq");
       if (!mainQuiz.length) mainQuiz = makeFallbackMain(concepts);
 
-      const postRaw = await generateQuiz(POST_QUIZ_PROMPT, text, model, learnStyle, isRetry);
+      const postRaw = await generateQuiz(POST_QUIZ_PROMPT, postSourceText, model, learnStyle, isRetry, { forceVariation: true });
       postSourceQuiz = sanitizeQuestions(postRaw, "pq");
-      if (!postSourceQuiz.length) postSourceQuiz = makeFallbackPost(concepts);
+      if (!postSourceQuiz.length) {
+        console.warn("[quiz] Post-source LLM returned no valid questions, using fallback");
+        postSourceQuiz = makeFallbackPost(concepts);
+      }
     }
 
     mainQuiz = mainQuiz.slice(0, 5);
