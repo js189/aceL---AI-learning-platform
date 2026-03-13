@@ -34,7 +34,7 @@ export async function GET(
       return NextResponse.json({ error: msgErr.message }, { status: 500 });
     }
 
-    const msgs = (messages ?? []).map((m: { id?: string; user_id?: string; username?: string; milestone_label?: string; content?: string; parent_id?: string; reactions?: unknown; created_at?: string }) => ({
+    const msgs = (messages ?? []).map((m: { parent_id?: string; reactions?: unknown; user_id?: string }) => ({
       id: m.id,
       userId: m.user_id,
       username: m.username,
@@ -50,7 +50,6 @@ export async function GET(
       title: board.title,
       subject: board.subject ?? "",
       creatorUsername: board.creator_username,
-      creatorUserId: (board as { user_id?: string }).user_id ?? null,
       createdAt: board.created_at,
       messages: msgs,
     });

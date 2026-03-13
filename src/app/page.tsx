@@ -10,7 +10,7 @@ export default async function HomePage() {
     <div className="min-h-screen bg-cream">
       <header className="border-b border-warm-sand/50 bg-cream/80 backdrop-blur-md">
         <div className="mx-auto flex h-14 sm:h-16 max-w-4xl items-center justify-between px-3 sm:px-6">
-          <span className="text-xl font-bold text-deep-charcoal">aceL</span>
+          <span className="text-xl font-semibold text-deep-charcoal">Adaptive Learning</span>
           <nav className="flex items-center gap-4">
             {session ? (
               <Link
@@ -37,9 +37,9 @@ export default async function HomePage() {
       </header>
 
       <main className="mx-auto max-w-4xl px-4 sm:px-6 py-16 sm:py-24 text-center">
-        <p className="slogan-text text-deep-charcoal text-xl sm:text-2xl md:text-3xl max-w-3xl mx-auto leading-snug [word-spacing:0.14em] tracking-slogan">
-          Stuck with study? Let aceL HELP YOU! Whatever level of SMART you are — this application GUARANTEES it.
-        </p>
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-deep-charcoal leading-heading">
+          Master any topic with AI that adapts to you
+        </h1>
         <p className="mt-6 text-lg text-deep-charcoal/80 leading-body max-w-2xl mx-auto">
           Upload your notes, PDFs, or videos. Get a personalised checklist,
           quizzes, and a learning path that fits how you learn — and get help

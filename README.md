@@ -71,6 +71,4 @@ Full-stack adaptive learning web app using the **Groq API**. Students master any
 - Encouraging, non-judgmental AI tone.
 - At-risk: “This concept is being a bit stubborn — let’s try a different approach.”
 
-## License
 
-MIT

@@ -1,12 +1,12 @@
 import "./globals.css";
-import { Quicksand } from "next/font/google";
+import { Inter } from "next/font/google";
 import { Providers } from "@/components/Providers";
 import type { Metadata } from "next";
 
-const quicksand = Quicksand({
+const inter = Inter({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-quicksand",
+  weight: ["400", "500", "600"],
+  variable: "--font-inter",
 });
 
 const metadataBase = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXTAUTH_URL || "https://acel.app";
@@ -30,7 +30,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={quicksand.variable}>
+    <html lang="en" className={inter.variable}>
       <body className="min-h-screen min-h-[100dvh] font-sans antialiased bg-cream text-deep-charcoal leading-body">
         <Providers>{children}</Providers>
       </body>
