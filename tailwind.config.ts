@@ -33,7 +33,11 @@ const config: Config = {
         hover: "0 8px 24px rgba(44, 62, 79, 0.08)",
       },
       fontFamily: {
-        sans: ["var(--font-inter)", "system-ui", "sans-serif"],
+        sans: ["var(--font-quicksand)", "system-ui", "sans-serif"],
+      },
+      letterSpacing: {
+        slogan: "0.02em",
+        "slogan-wide": "0.04em",
       },
       lineHeight: {
         body: "1.6",

@@ -1,19 +1,19 @@
 import "./globals.css";
-import { Inter } from "next/font/google";
+import { Quicksand } from "next/font/google";
 import { Providers } from "@/components/Providers";
 import type { Metadata } from "next";
 
-const inter = Inter({
+const quicksand = Quicksand({
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  variable: "--font-inter",
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-quicksand",
 });
 
 const metadataBase = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXTAUTH_URL || "https://acel.app";
 
 export const metadata: Metadata = {
-  title: "AceL — Intelligent Learning Platform",
-  description: "AceL — Intelligent Learning Platform",
+  title: "aceL — Adaptive Learning",
+  description: "AI-powered adaptive learning for students. Stuck with study? Let aceL help you.",
   metadataBase: new URL(metadataBase),
 };
 
@@ -30,7 +30,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en" className={quicksand.variable}>
       <body className="min-h-screen min-h-[100dvh] font-sans antialiased bg-cream text-deep-charcoal leading-body">
         <Providers>{children}</Providers>
       </body>

@@ -7,7 +7,7 @@ export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     const userId = (session?.user as { id?: string })?.id;
-    if (!userId) {
+    if (!session?.user || !userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     if (!supabase) {
