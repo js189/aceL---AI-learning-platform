@@ -1,6 +1,6 @@
 # aceL - AI Learning Platform
 
-Full-stack adaptive learning web app using the **Groq API**. Students master any topic through personalised AI tutoring, adaptive learning paths, and collaborative learning.
+Full-stack adaptive learning web app powered by **Featherless AI**. Students master any topic through personalised AI tutoring, adaptive learning paths, and collaborative learning.
 
 ## Features
 
@@ -13,7 +13,7 @@ Full-stack adaptive learning web app using the **Groq API**. Students master any
 ## Tech stack
 
 - **Frontend**: Next.js 14 (App Router), Tailwind CSS
-- **AI**: Groq API (OpenAI-compatible) for chat and vision (OCR)
+- **AI**: [Featherless AI](https://featherless.ai) for chat and vision (OCR), using the OpenAI SDK against a configurable base URL
 - **Auth**: NextAuth (email + Google)
 - **Storage**: Supabase (optional; app works with localStorage for demo)
 - **YouTube**: `youtube-transcript` for captions
@@ -30,14 +30,26 @@ Full-stack adaptive learning web app using the **Groq API**. Students master any
 
 2. **Environment**
 
-   Copy `.env.local.example` to `.env.local` and set:
+   Copy `.env.example` to `.env` and set the variables there (overview below):
 
-   - `GROQ_API_KEY` — from [Groq](https://console.groq.com/keys)
-   - `NEXTAUTH_URL` — e.g. `http://localhost:3000`
-   - `NEXT_PUBLIC_BASE_URL` — e.g. `http://localhost:3000` in dev, `https://acel.app` in production
+   **Featherless AI**
+
+   - `FEATHERLESS_API_KEY`
+   - `NEXT_PUBLIC_FEATHERLESS_BASE_URL` — same purpose as in `.env.example`; if omitted, the app falls back to `https://api.featherless.ai/v1` (see `src/lib/llm.ts`)
+
+   **NextAuth**
+
+   - `NEXTAUTH_URL` — e.g. `http://localhost:3000` in development
    - `NEXTAUTH_SECRET` — e.g. `openssl rand -base64 32`
-   - Optional: Google OAuth `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
-   - Optional: Supabase `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+   - `NEXT_PUBLIC_BASE_URL` — origin where the site is served (dev: `http://localhost:3000`; production: your HTTPS URL)
+
+   **Google sign-in**
+
+   - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` — required for **Continue with Google** (see commented steps and redirect URI `${NEXT_PUBLIC_BASE_URL}/api/auth/callback/google` in `.env.example`)
+
+   **Supabase** (optional; persistence vs `localStorage`)
+
+   - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
 
 3. **Supabase** (optional)
 
