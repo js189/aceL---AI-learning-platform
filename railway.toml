@@ -1,0 +1,9 @@
+# Railway.app: New Project → Deploy from GitHub repo → it detects Dockerfile.
+# Set all env vars in Railway → Variables (see .env.local.example).
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10

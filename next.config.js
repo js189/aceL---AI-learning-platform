@@ -9,6 +9,7 @@ if (supabaseHost) {
   imagePatterns.push({ protocol: 'https', hostname: supabaseHost, pathname: '/storage/v1/object/public/**' });
 }
 const nextConfig = {
+  output: "standalone",
   images: {
     remotePatterns: imagePatterns,
   },

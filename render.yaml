@@ -1,0 +1,17 @@
+# Render.com: New → Blueprint → paste this file, or create Web Service manually.
+# https://render.com/docs/deploy-nextjs-app
+services:
+  - type: web
+    name: acel-learning
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: starter
+    region: oregon
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Add the rest in the Render dashboard (same as .env.local.example):
+      # NEXTAUTH_URL, NEXTAUTH_SECRET, GOOGLE_*, NEXT_PUBLIC_SUPABASE_*,
+      # SUPABASE_SERVICE_ROLE_KEY, FEATHERLESS_API_KEY, NEXT_PUBLIC_FEATHERLESS_BASE_URL, etc.
