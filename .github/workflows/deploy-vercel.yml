@@ -1,0 +1,26 @@
+# Deploy to Vercel on push (after one-time Vercel + GitHub setup).
+#
+# 1. vercel.com → New Project → Import this repo → Deploy once (add env vars from .env.local.example).
+# 2. Vercel → Project → Settings → General → copy Project ID and Team / Org ID.
+# 3. vercel.com/account/tokens → Create token.
+# 4. GitHub repo → Settings → Secrets and variables → Actions → add:
+#    VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID
+#
+name: Deploy to Vercel
+
+on:
+  push:
+    branches: [main, feature/dev]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: "--prod"

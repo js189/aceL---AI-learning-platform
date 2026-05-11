@@ -3,6 +3,9 @@ node_modules/
 .pnp/
 .pnp.js
 
+# Vercel (local link; do not commit)
+.vercel/
+
 # Build
 .next/
 out/
